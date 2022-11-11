@@ -62,8 +62,7 @@ def readSpectrumFile(filePath):
 					spectralData.append(line)
 
 	### Return calibration data and spectrum
-	return calibrationData, np.asarray(spectralData)
-
+	return calibrationData, np.asarray(spectralData).astype(int)
 
 
 ### Calibrate spectrum with 
@@ -156,7 +155,6 @@ def calibrateSpectrum(calibrationData, spectralData):
 	return bins, calibratedSpectrum
 
 
-
 ### Defining a Gaussian distribution of total counts
 ### such that the integral over all space is 'A'
 def gaussian(xs, A, sigma, mu):
@@ -165,7 +163,6 @@ def gaussian(xs, A, sigma, mu):
 	temp = -(1/2)*(temp**2)
 	temp = np.exp(temp)
 	return (A*np.exp(-(1/2)*(((xs - mu) / sigma)**2))) / (sigma*np.sqrt(2*np.pi))#(A*temp) / (sigma*np.sqrt(2*np.pi))
-
 
 
 ### Get Gaussian fit to data and integrate
@@ -214,7 +211,6 @@ def getGaussFit(xs, ys, sigFigs=4):
 	return popt, pcov
 
 
-
 ### Integrate under the Gaussian to get total counts
 def intGauss(xs, ys, popt, sigmas=3):
 
@@ -237,57 +233,52 @@ def intGauss(xs, ys, popt, sigmas=3):
 	return totCounts
 
 
-### Fit regions manually
-def fitManual(filePath, clipVal=0):
+## Function to easily plot data
+def plotData(xs, ys, plotArgs):
 
-	## Function to easily plot data
-	def plotData(xs, ys, plotArgs):
+	# Clear existing plots
+	plt.clf()
 
-		# Plot whole spectrum
-		plt.plot(xs, ys, color=plotArgs['color'], label=plotArgs['label'])
+	# Plot whole spectrum
+	plt.plot(xs, ys, color=plotArgs['color'], label=plotArgs['label'])
 
-		# Add title
-		plt.title(plotArgs['title'])
+	# Add title
+	plt.title(plotArgs['title'])
 
-		# plt.xlim(19,30)
+	# plt.xlim(19,30)
 
-		# Add axes labels
-		plt.xlabel(plotArgs['xlabel'])
-		plt.ylabel(plotArgs['ylabel'])
+	# Add axes labels
+	plt.xlabel(plotArgs['xlabel'])
+	plt.ylabel(plotArgs['ylabel'])
 
-		# If user wants to show a legend
-		if plotArgs['legend']:
+	# If user wants to show a legend
+	if plotArgs['legend']:
 
-			# Add legend
-			plt.legend()
+		# Add legend
+		plt.legend()
 
-	## Use readSpectrumFile() to read file
-	calibrationData, spectralData = readSpectrumFile(filePath)
 
-	## Calibrate output of file with calibration data
-	bins, calibratedSpectrum = calibrateSpectrum(calibrationData, spectralData)
+### Fit peak in spectrum manually
+def obtainPeak(binning, spectrumUncalibrated, clipVal=0):
 
 	## If user wants to clip the data
 	if clipVal != 0:
 
 		# Clip the spectrum to remove noise (optional)
-		calibratedSpectrum = np.clip(calibratedSpectrum, a_min = 0, a_max = clipVal)
-
-	## Title text
-	titleText = filePath.split('/')[-1].split('.')[0] + ' select points to fit.'
+		calibratedSpectrum = np.clip(spectrumUncalibrated, a_min = 0, a_max = clipVal)
 
 	## Create dictionary to store plotting parameters
 	plotArgs = {
 		'color': 'k',
 		'label': 'data',
-		'xlabel': 'keV',
+		'xlabel': 'bin',
 		'ylabel': 'counts',
-		'title': titleText,
+		'title': 'uncalibrated spectrum',
 		'legend': True
 	}
 
 	## Plot data
-	plotData(bins, calibratedSpectrum, plotArgs)
+	plotData(binning, spectrumUncalibrated, plotArgs)
 
 	## Get point inputs
 	points = np.asarray(plt.ginput(2))
@@ -302,43 +293,46 @@ def fitManual(filePath, clipVal=0):
 	## Extra region to plot (in percent)
 	extraR = 0.2
 
-	print(f'Fitting region from {startX} keV to {endX} keV.\n')
+	print(f'Fitting region from bin {startX} to bin {endX}.\n')
 
 	## Close the plot
 	plt.close()
 
 	## Title text
-	plotArgs['title'] = filePath.split('/')[-1].split('.')[0] + ' fit'
+	plotArgs['title'] = 'spectral line'
 
 	## Plot data
-	plotData(bins, calibratedSpectrum, plotArgs)
+	plotData(binning, spectrumUncalibrated, plotArgs)
 
 	## Plot the correct ranges
 	plt.xlim(startX - width*(extraR/2), endX + width*(extraR/2))
 
 	## Create mask for certain values
-	mask = (bins > startX)*(bins < endX)
+	mask = (binning > startX)*(binning < endX)
 
 	## Mask the bins and calibrated spectrum
-	maskedBins = bins[mask]
-	maskedSpectrum = calibratedSpectrum[mask]
+	maskedBins = binning[mask]
+	maskedSpectrum = spectrumUncalibrated[mask]
 
 	## Fit the gaussian to the ROI
 	popt, pcov = getGaussFit(maskedBins, maskedSpectrum)
 
 	## Get integral of Gaussian
-	intCounts = intGauss(bins, calibratedSpectrum, popt, sigmas=3)
+	intCounts = intGauss(binning, spectrumUncalibrated, popt, sigmas=3)
 
 	print('Integrated counts at peak: {:.4g}'.format(intCounts))
 
 	## Get counts for the fit curve
-	FitCounts = gaussian(maskedBins, *popt)
+	fitCounts = gaussian(maskedBins, *popt)
 
 	## Plot gaussian fit of ROI
-	plt.plot(maskedBins, FitCounts, color='red', label='Gaussian fit')
+	plt.plot(maskedBins, fitCounts, color='red', label='Gaussian fit')
 
 	## Show plots
 	plt.show()
+
+	## Return fit parameters
+	return popt
 
 
 ### Prints out a spectrum to select peaks
@@ -381,6 +375,12 @@ def createCalibration(filePath):
 
 	print(f'Creating calibration file {cNum} for {element}.')
 
+	## Load selected spectrum from filePath
+	meta, spectrumUncalibrated = readSpectrumFile(filePath)
+
+	## Obtain binning
+	binning = np.arange(len(spectrumUncalibrated))
+
 	## Filepath to corresponding NIST spectrum
 	nistPath = f"NISTData/Spectral_Lines_{element}.csv"
 
@@ -400,25 +400,84 @@ def createCalibration(filePath):
 	### Show the spectrum (uncalibrated)
 
 	## Get an input of number of peaks
-	numPeaks = getNumericalInput('Input number of peaks to fit: ')
+	numPeaks = 0
+	while numPeaks < 2:
+		numPeaks = int(getNumericalInput('Input number of peaks to fit (minimum 2 required): '))
+
+	## Create list to store calibration points
+	calibration = []
 
 	## For every peak in the range
 	for nPeak in range(1, numPeaks+1):
 
-		print(f'\nChoose peak {nPeak} from {element} spectrum.')
+		print(f'\n\nChoose peak {nPeak} from {element} spectrum.')
 
 		## Display NIST coords
 		printSpectrum(NISTCoords, units='keV')
 
-		### Show the spectrum (uncalibrated) and fit gaussian
+		print('\nDisplaying uncalibrated spectrum. Close once a peak has been chosen.')
+
+		## Create dictionary to store plotting parameters
+		plotArgs = {
+			'color': 'k',
+			'label': 'data',
+			'xlabel': 'bin',
+			'ylabel': 'counts',
+			'title': 'uncalibrated spectrum',
+			'legend': True
+		}
 		
+		## Plotting uncalibrated spectrum
+		plotData(binning, spectrumUncalibrated, plotArgs)
+
+		## Showing plot
+		plt.show()
+
+		## Get an input of peak index
+		pNum = int(getNumericalInput('Input index of NIST peak to fit: '))
+
+		## Obtain fit gaussian from spectrum
+		A, sigma, mean = obtainPeak(binning, spectrumUncalibrated)
+
+		## Get energy of fit peak
+		pEnergy = NISTCoords[pNum-1, 0]
+
+		## Add pair of calibration point to array
+		calibration.append(np.array([pNum, pEnergy]))
+
+	## Convert calibration points to array
+	calibration = np.asarray(calibration)
+
+	## Get list of 'x' and 'y' calibration points
+	calibration = calibration.T
+
+	## Get calibration curve
+	m = m_unweighted(calibration[0], calibration[1])
+	b = b_unweighted(calibration[0], calibration[1])
+	mErr = sig_m_unweighted(calibration[0], calibration[1])
+	bErr = sig_b_unweighted(calibration[0], calibration[1])
+
+	print(f'\nFinal calibration curve: y = {m:.3g}x + {b:.3g}')
+			
 	## Get current date and time
 	dt = datetime.datetime.now()
 	date = dt.strftime("%Y_%m_%d")
 
-	## Create output address for calibration file
-	outPath = f"cCurves/{element}_{date}_curve_{str(cNum).zfill(2)}.txt"
+	## Create dictionary of calibration values
+	calibration = {
+		'm': np.array([m]),
+		'b': np.array([b]),
+		'mErr': np.array([mErr]),
+		'bErr': np.array([bErr]),
+	}
 
+	df = pd.DataFrame.from_dict(calibration)
+
+	## Create output address for calibration file
+	outPath = f"cCurves/{element}_{date}_curve_{str(cNum).zfill(2)}.csv"
+
+	## Save calibration data to csv
+	df.to_csv(outPath, index=False, encoding='utf-8')
 
 	print(f'\nSaved calibration curve to {outPath}.')
 
