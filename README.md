@@ -1,2 +1,2 @@
-# spectrometer_calibration
-STEAM hard/soft spectrometer calibration.
+# Spectrometer Calibration Code
+STEAM hard/soft spectrometer calibration code.
