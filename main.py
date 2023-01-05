@@ -64,7 +64,6 @@ def readSpectrumFile(filePath):
 	### Return calibration data and spectrum
 	return calibrationData, np.asarray(spectralData).astype(int)
 
-
 ### Calibrate spectrum with 
 def calibrateSpectrum(calibrationData, spectralData):
 
@@ -154,7 +153,6 @@ def calibrateSpectrum(calibrationData, spectralData):
 	## Output bins and spectrum
 	return bins, calibratedSpectrum
 
-
 ### Defining a Gaussian distribution of total counts
 ### such that the integral over all space is 'A'
 def gaussian(xs, A, sigma, mu):
@@ -163,7 +161,6 @@ def gaussian(xs, A, sigma, mu):
 	temp = -(1/2)*(temp**2)
 	temp = np.exp(temp)
 	return (A*np.exp(-(1/2)*(((xs - mu) / sigma)**2))) / (sigma*np.sqrt(2*np.pi))#(A*temp) / (sigma*np.sqrt(2*np.pi))
-
 
 ### Get Gaussian fit to data and integrate
 def getGaussFit(xs, ys, sigFigs=4):
@@ -210,7 +207,6 @@ def getGaussFit(xs, ys, sigFigs=4):
 	## Return fit parameters
 	return popt, pcov
 
-
 ### Integrate under the Gaussian to get total counts
 def intGauss(xs, ys, popt, sigmas=3):
 
@@ -232,7 +228,6 @@ def intGauss(xs, ys, popt, sigmas=3):
 	## Return total counts
 	return totCounts
 
-
 ## Function to easily plot data
 def plotData(xs, ys, plotArgs):
 
@@ -245,7 +240,8 @@ def plotData(xs, ys, plotArgs):
 	# Add title
 	plt.title(plotArgs['title'])
 
-	# plt.xlim(19,30)
+	plt.xlim(505, 555)
+	plt.ylim(-10, 1100)
 
 	# Add axes labels
 	plt.xlabel(plotArgs['xlabel'])
@@ -256,7 +252,6 @@ def plotData(xs, ys, plotArgs):
 
 		# Add legend
 		plt.legend()
-
 
 ### Fit peak in spectrum manually
 def obtainPeak(binning, spectrumUncalibrated, clipVal=0):
@@ -334,7 +329,6 @@ def obtainPeak(binning, spectrumUncalibrated, clipVal=0):
 	## Return fit parameters
 	return popt
 
-
 ### Prints out a spectrum to select peaks
 def printSpectrum(coords, units='keV'):
 
@@ -350,7 +344,6 @@ def printSpectrum(coords, units='keV'):
 		print(f"{i+1:5} | {coords[i][0]:12} | {coords[i][1]}")
 
 	print("--------------------------------------")
-
 
 ### Create calibration for an element using known spectrum
 def createCalibration(filePath):
@@ -483,12 +476,10 @@ def createCalibration(filePath):
 
 	return
 
-
 ### Display a spectrum
 def display(filePath, save=False):
 
 	return
-
 
 ### Function to create csv file from spectrum data file
 def createCsv(filePath):
@@ -521,7 +512,6 @@ def createCsv(filePath):
 	df.to_csv(f"{csvPath}", index=False)
 
 	print(f"Saved data to {csvPath}.")
-
 
 ### Main functioning of script
 def main(args):
@@ -566,10 +556,13 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Process inputs to calibrate spectra.')
 
 	## Choose spectrum sourse
-	parser.add_argument('--src', action='store', nargs='?', type=str, default='spectra/55Fe_CdTe.txt', help='Spectrum source file.')
+	parser.add_argument('--src', action='store', nargs='?', type=str, default='spectra/demo/2022_12_02_CdTe_Zn_01_no_purge.txt', help='Spectrum source file.')
 
 	## Choose whether to create spectrum calibration file
 	parser.add_argument('--calibrate', action='store_true', help='Choose whether to create spectrum calibration file.')
+
+	## Choose calibration source file
+	parser.add_argument('--cSrc', action='store', nargs='?', type=str, default='cCurves/Ba_2022_11_30_curve_01.csv', help='Spectrum source file.')
 
 	## Choose whether to display a spectrum
 	parser.add_argument('--display', action='store_true', help='Choose whether to display a spectrum.')
@@ -585,3 +578,14 @@ if __name__ == '__main__':
 
 	## Call main
 	main(args)
+
+	## Example commands:
+
+	# To calibrate a spectrum:
+	# python main.py --src 'spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt' --calibrate
+
+	# To display a spectrum: (Add '--save' at the end to save the displayed spectrum.)
+	# python main.py --src 'spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt' --cSrc 'cCurves/Ba_2022_11_30_curve_01.csv' --display
+
+	# To create a csv of a spectrum:
+	# python main.py --src 'spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt' --cSrc 'cCurves/Ba_2022_11_30_curve_01.csv' --csv

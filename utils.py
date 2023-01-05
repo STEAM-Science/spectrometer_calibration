@@ -34,23 +34,16 @@ def sig_b_unweighted(x, y):
     sig_y = sig_y_unweighted(x, y)
     return sig_y*np.sqrt(np.sum(x*x)/delta)
 
-
 ### Get numerical input
 def getNumericalInput(text):
-
     ## Define temporary variable
     num = 'temp'
-
     ## Check if number inputted
     while not num.isnumeric():
-
         # Get input
         num = input(text)
-
         # If this is not a numerical value
         if not num.isnumeric():
-
             print('Input a number!')
-
     ## Return input as float
     return float(num)
