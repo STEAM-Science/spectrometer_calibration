@@ -63,10 +63,10 @@ def createCalibration(filePath):
 		return
 
 	## Load selected spectrum from filePath
-	meta, spectrumUncalibrated = readSpectrumFile(filePath)
+	meta, spectrum = readSpectrumFile(filePath)
 
 	## Obtain binning
-	binning = np.arange(len(spectrumUncalibrated))
+	binning = np.arange(len(spectrum))
 
 	## Filepath to corresponding NIST spectrum
 	nistPath = f"NISTData/Spectral_Lines_{element}.csv"
@@ -85,6 +85,23 @@ def createCalibration(filePath):
 	NISTCoords = np.array([xsNIST, ysNIST]).T
 
 	### Show the spectrum (uncalibrated)
+	print('\nDisplaying uncalibrated spectrum. Close once decided how many peaks to fit.')
+
+	## Create dictionary to store plotting parameters
+	plotArgs = {
+		'color': 'k',
+		'label': 'data',
+		'xlabel': 'bin',
+		'ylabel': 'counts',
+		'title': f'{element}: count peaks that will be fit and close window',
+		'legend': True
+	}
+	
+	## Plotting uncalibrated spectrum
+	plotData(binning, spectrum, plotArgs)
+
+	## Showing plot
+	plt.show()
 
 	## Get an input of number of peaks
 	numPeaks = 0
@@ -115,7 +132,7 @@ def createCalibration(filePath):
 		}
 		
 		## Plotting uncalibrated spectrum
-		plotData(binning, spectrumUncalibrated, plotArgs)
+		plotData(binning, spectrum, plotArgs)
 
 		## Showing plot
 		plt.show()
@@ -124,13 +141,13 @@ def createCalibration(filePath):
 		pNum = int(getNumericalInput('Input index of NIST peak to fit: '))
 
 		## Obtain fit gaussian from spectrum
-		A, sigma, mean = obtainPeak(binning, spectrumUncalibrated, element)
+		A, sigma, mean = obtainPeak(binning, spectrum, element)
 
 		## Get energy of fit peak
 		pEnergy = NISTCoords[pNum-1, 0]
 
 		## Add pair of calibration point to array with uncertainty
-		calibration.append(np.array([pNum, pEnergy, sigma]))
+		calibration.append(np.array([mean, pEnergy, sigma]))
 
 	## Convert calibration points to array
 	calibration = np.asarray(calibration)
@@ -139,15 +156,15 @@ def createCalibration(filePath):
 	calibration = calibration.T
 
 	## Get calibration curve
-	m = m_weighted(calibration[0], calibration[1], calibration[2])
-	b = b_weighted(calibration[0], calibration[1], calibration[2])
-	mErr = sig_m_weighted(calibration[0], calibration[1], calibration[2])
-	bErr = sig_b_weighted(calibration[0], calibration[1], calibration[2])
+	m = m_unweighted(calibration[0], calibration[1])
+	b = b_unweighted(calibration[0], calibration[1])
+	mErr = sig_m_unweighted(calibration[0], calibration[1])
+	bErr = sig_b_unweighted(calibration[0], calibration[1])
 
 	print(f'\nFinal calibration curve: y = {m:.3g}x + {b:.3g}')
 	print(f'Errors:')
-	print(f'm = {m:.2f} ± {mErr:.2f}')
-	print(f'b = {b:.2f} ± {bErr:.2f}')
+	print(f'm = {m:.4f} ± {mErr:.4f}')
+	print(f'b = {b:.4f} ± {bErr:.4f}')
 			
 	## Get current date and time
 	dt = datetime.datetime.now()
@@ -175,70 +192,170 @@ def createCalibration(filePath):
 def displaySpectrum(filePath, caliPath, save=False):
 
 	## Load selected spectrum from filePath
-	meta, spectrumUncalibrated = readSpectrumFile(filePath)
+	meta, spectrum = readSpectrumFile(filePath)
 
 	## Obtain binning
-	binning = np.arange(len(spectrumUncalibrated))
+	binning = np.arange(len(spectrum))
 
 	## Load calibration curve
 	caliDF = pd.read_csv(caliPath)
 
 	## Calibration curve
-	m = caliDF['m']
-	b = caliDF['b']
+	m = caliDF['m'][0]
+	b = caliDF['b'][0]
 
 	## Calibrate binning
 	energies = m*binning + b
 
+	## Split filepath into individual componenets
+	pathComps = filePath.split(os.sep)
+
 	## Find element from filePath
 	element = pathComps[-1].split('_')[4]
 
+	## Filename as plot
+	outFile = pathComps[-1].split('.')[-2] + "_plot.png"
+
+	## File path to create in output
+	outDir = pathComps[-2]
+
 	## Create dictionary to store plotting parameters
 	plotArgs = {
-		'color': 'k',
+		'color': 'b',
 		'label': 'data',
-		'xlabel': 'bin',
+		'xlabel': 'keV',
 		'ylabel': 'counts',
 		'title': f'{element}: spectrum',
 		'legend': True
 	}
 
+	## Check if user wants to change bounds
+	doBounds = input("Input x-bounds? (Y/[N]): ")
+
+	## If user wants to input bounds
+	if doBounds == 'Y':
+
+		# Get bounds
+		xStart = getNumericalInput("Input starting energy: ")
+		xEnd = getNumericalInput("Input ending energy: ")
+
+		# Set bounds
+		xBounds = (xStart, xEnd)
+
+	## Otherwise
+	else:
+
+		# Set no bounds
+		xBounds = None
+
 	## Plot data
-	plotData(binning, spectrumUncalibrated, plotArgs)
+	plotData(energies, spectrum, plotArgs, xBounds=xBounds)
+
+	## Check if user wants to change bounds
+	savePlot = input("Save plot? (Y/[N]): ")
+
+	## If user wants to save
+	if savePlot == 'Y':
+
+		## Output path
+		outPath = os.path.join("plots", outDir, outFile)
+
+		## If directory for calibration curve outputs does not exist
+		if not os.path.isdir("plots/"):
+
+			# Make directory for calibration files
+			os.mkdir("plots/")
+
+		## If directory for output file does not exist
+		if not os.path.isdir(os.path.join("plots", outDir)):
+
+			# Make directory for output files
+			os.mkdir(os.path.join("plots", outDir))
+
+		## Check if the calibration curve already exists
+		if len(glob.glob(outPath)) > 0:
+
+			print(f'Plot {outFile} already exists! Delete or rename before running again.')
+
+			print(f'\nPath to existing file: {outPath}')
+
+			# Exit out of script
+			return
+
+		## Save plot
+		plt.savefig(outPath, dpi=300)
+
+	## Display plot
+	plt.show()
 
 	return
 
 ### Function to create csv file from spectrum data file and calibration curve
 def createCsv(filePath, caliPath):
 
-	## Use readSpectrumFile() to read file
-	calibrationData, spectralData = readSpectrumFile(filePath)
+	## Load selected spectrum from filePath
+	meta, spectrum = readSpectrumFile(filePath)
 
+	## Obtain binning
+	binning = np.arange(len(spectrum))
 
-	### INCOMPLETE
+	## Load calibration curve
+	caliDF = pd.read_csv(caliPath)
+
+	## Calibration curve
+	m = caliDF['m'][0]
+	b = caliDF['b'][0]
+
+	## Calibrate binning
+	energies = m*binning + b
 
 	## Create new dictionary with data
 	df = {
-		'energy (keV)': bins,
-		'counts': calibratedSpectrum,
+		'energy (keV)': energies,
+		'counts': spectrum,
 	}
 
 	## Convert dictionary to pandas dataframe
 	df = pd.DataFrame(df)
 
-	## Path to output csv file
-	csvPath = './csvOut/' + filePath.split('/')[-1].split('.')[0] + '.csv'
+	## Split filepath into individual componenets
+	pathComps = filePath.split(os.sep)
+
+	## Filename as csv
+	outFile = pathComps[-1].split('.')[-2] + "_calibrated.csv"
+
+	## File path to create in output
+	outDir = pathComps[-2]
+
+	## Output path
+	outPath = os.path.join("csvOut", outDir, outFile)
 
 	## If directory for csv outputs does not exist
-	if not os.path.isdir("./csvOut/"):
+	if not os.path.isdir("csvOut/"):
 
 		# Make directory for csv files
-		os.mkdir("./csvOut/")
+		os.mkdir("csvOut/")
+
+	## If directory for output file does not exist
+	if not os.path.isdir(os.path.join("csvOut", outDir)):
+
+		# Make directory for output files
+		os.mkdir(os.path.join("csvOut", outDir))
+
+	## Check if the calibration curve already exists
+	if len(glob.glob(outPath)) > 0:
+
+		print(f'Plot {outFile} already exists! Delete or rename before running again.')
+
+		print(f'\nPath to existing file: {outPath}')
+
+		# Exit out of script
+		return
 
 	## Save csv
-	df.to_csv(f"{csvPath}", index=False)
+	df.to_csv(f"{outPath}", index=False)
 
-	print(f"Saved data to {csvPath}.")
+	print(f"Saved data to {outPath}.")
 
 ### Main functioning of script
 def main(args):
@@ -259,17 +376,17 @@ def main(args):
 		print(f"Displaying {args.src} using {args.cSrc} for calibration.\n")
 
 		# Run displaySpectrum
-		displaySpectrum(args.src, args.cSrc, save=args.save)
+		displaySpectrum(args.src, args.cSrc)
 
 		return
 
 	## If the user wants to export data to a csv
 	if args.csv:
 
-		print(f"Creating csv file from {args.src}.\n")
+		print(f"Creating csv file from {args.src} calibrated using {args.cSrc}.\n")
 
 		# Run createCsv
-		createCsv(args.src)
+		createCsv(args.src, args.cSrc)
 
 		return
 
@@ -294,13 +411,10 @@ if __name__ == '__main__':
 	parser.add_argument('--calibrate', action='store_true', help='Choose whether to create spectrum calibration file.')
 
 	## Choose calibration source file
-	parser.add_argument('--cSrc', action='store', nargs='?', type=str, default='cCurves/Ba_2022_11_30_curve_01.csv', help='Spectrum source file.')
+	parser.add_argument('--cSrc', action='store', nargs='?', type=str, default='cCurves/demo/2022_12_02_CdTe_Zn_01_no_purge_curve.csv', help='Spectrum source file.')
 
 	## Choose whether to display a spectrum
 	parser.add_argument('--display', action='store_true', help='Choose whether to display a spectrum.')
-
-	## Choose whether to save a displayed spectrum
-	parser.add_argument('--save', action='store_true', help='Choose whether to save a displayed spectrum.')
 
 	## Choose whether to create a csv from spectrum
 	parser.add_argument('--csv', action='store_true', help='Choose whether to create a csv from spectrum.')
@@ -316,11 +430,11 @@ if __name__ == '__main__':
 	# To calibrate a spectrum:
 	# python main.py --src spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt --calibrate
 
-	# To display a spectrum: (Add '--save' at the end to save the displayed spectrum.)
-	# python main.py --src spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt --cSrc cCurves/Ba_2022_11_30_curve_01.csv --display
+	# To display a spectrum:
+	# python main.py --src spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt --cSrc cCurves/demo/2022_12_02_CdTe_Zn_01_no_purge_curve.csv --display
 
 	# To create a csv of a spectrum:
-	# python main.py --src spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt --cSrc cCurves/Ba_2022_11_30_curve_01.csv --csv
+	# python main.py --src spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt --cSrc cCurves/demo/2022_12_02_CdTe_Zn_01_no_purge_curve.csv --csv
 
 	## Metadata
-	# Note: Data is stored in the STEAM Google Drive at .
+	# Note: Data is stored in the STEAM shared Google Drive at .

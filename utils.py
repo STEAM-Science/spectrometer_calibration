@@ -314,7 +314,7 @@ def obtainPeak(binning, spectrumUncalibrated, element, clipVal=0):
 	## Extra region to plot (in percent)
 	extraR = 0.2
 
-	print(f'Fitting region from bin {startX} to bin {endX}.\n')
+	print(f'Fitting region from bin {startX:.2f} to bin {endX:.2f}.\n')
 
 	## Title text
 	plotArgs['title'] = f'{element}: Gaussian fit to spectral line'
