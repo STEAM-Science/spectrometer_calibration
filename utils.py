@@ -206,7 +206,7 @@ def plotData(xs, ys, plotArgs, xBounds=None, yBounds=None):
 		plt.legend()
 
 ### Fit peak in spectrum manually
-def obtainPeak(binning, spectrumUncalibrated, element, clipVal=0):
+def obtainPeak(binning, spectrum, element, clipVal=0):
 
 	## First, we will deal with the noise. There are two ways to do this.
 	## Either the user has already defined a clip value, and all values above
@@ -216,7 +216,7 @@ def obtainPeak(binning, spectrumUncalibrated, element, clipVal=0):
 	if clipVal != 0:
 
 		# Clip the spectrum to remove noise (optional)
-		calibratedSpectrum = np.clip(spectrumUncalibrated, a_min = 0, a_max = clipVal)
+		calibratedSpectrum = np.clip(spectrum, a_min = 0, a_max = clipVal)
 
 	## Or no clip value has been specified. In this case, thhe code will
 	## Extrapolate a clip value using the data.
@@ -225,7 +225,7 @@ def obtainPeak(binning, spectrumUncalibrated, element, clipVal=0):
 	else:
 
 		# Check how many bins the spectrum contains
-		nBins = len(spectrumUncalibrated)
+		nBins = len(spectrum)
 
 		# A good guess for where the noise drops to zero is around bin 100.
 		# This is about a tenth of the way into the spectrum.
@@ -235,10 +235,10 @@ def obtainPeak(binning, spectrumUncalibrated, element, clipVal=0):
 
 		# Find the largest value in the spectrum beyond the cutoff.
 		# Set the clip value to 1.5 times this.
-		clipVal = np.max(spectrumUncalibrated[cutoff:])*1.5
+		clipVal = np.max(spectrum[cutoff:])*1.5
 
 		# Clip the spectrum to remove noise
-		calibratedSpectrum = np.clip(spectrumUncalibrated, a_min = 0, a_max = clipVal)
+		spectrum = np.clip(spectrum, a_min = 0, a_max = clipVal)
 
 	## We will start by plotting the uncalibrated spectrum for the user to
 	## choose the region to zoom into. This will be done by plotting the spectrum,
@@ -256,7 +256,7 @@ def obtainPeak(binning, spectrumUncalibrated, element, clipVal=0):
 	}
 
 	## Plot data
-	plotData(binning, spectrumUncalibrated, plotArgs)
+	plotData(binning, spectrum, plotArgs)
 
 	## Get point inputs
 	points = np.asarray(plt.ginput(2))
@@ -275,7 +275,7 @@ def obtainPeak(binning, spectrumUncalibrated, element, clipVal=0):
 	mask = (binning > startX)*(binning < endX)
 
 	## Masked spectrum
-	maskedSpectrum = spectrumUncalibrated[mask]
+	maskedSpectrum = spectrum[mask]
 
 	## Maximum value in masked spectrum
 	peakHeight = np.max(maskedSpectrum)
@@ -293,7 +293,7 @@ def obtainPeak(binning, spectrumUncalibrated, element, clipVal=0):
 	plotArgs['title'] = f'{element}: Fit a peak'
 
 	## Plot data
-	plotData(binning, spectrumUncalibrated, plotArgs, xBounds=xBounds, yBounds=yBounds)
+	plotData(binning, spectrum, plotArgs, xBounds=xBounds, yBounds=yBounds)
 
 	## Get point inputs
 	points = np.asarray(plt.ginput(2))
@@ -320,20 +320,20 @@ def obtainPeak(binning, spectrumUncalibrated, element, clipVal=0):
 	plotArgs['title'] = f'{element}: Gaussian fit to spectral line'
 
 	## Plot data
-	plotData(binning, spectrumUncalibrated, plotArgs, xBounds=xBounds, yBounds=yBounds)
+	plotData(binning, spectrum, plotArgs, xBounds=xBounds, yBounds=yBounds)
 
 	## Create mask for certain values
 	mask = (binning > startX)*(binning < endX)
 
 	## Mask the bins and calibrated spectrum
 	maskedBins = binning[mask]
-	maskedSpectrum = spectrumUncalibrated[mask]
+	maskedSpectrum = spectrum[mask]
 
 	## Fit the gaussian to the ROI
 	popt, pcov = getGaussFit(maskedBins, maskedSpectrum)
 
 	## Get integral of Gaussian
-	intCounts = intGauss(binning, spectrumUncalibrated, popt, sigmas=3)
+	intCounts = intGauss(binning, spectrum, popt, sigmas=3)
 
 	print('Integrated counts at peak: {:.4g}'.format(intCounts))
 

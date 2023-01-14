@@ -96,9 +96,25 @@ def createCalibration(filePath):
 		'title': f'{element}: count peaks that will be fit and close window',
 		'legend': True
 	}
+
+	# Check how many bins the spectrum contains
+	nBins = len(spectrum)
+
+	# A good guess for where the noise drops to zero is around bin 100.
+	# This is about a tenth of the way into the spectrum.
+
+	# Extrapolate a cutoff
+	cutoff = int(nBins/10)
+
+	# Find the largest value in the spectrum beyond the cutoff.
+	# Set the clip value to 1.5 times this.
+	clipVal = np.max(spectrum[cutoff:])*1.5
+
+	# Clip the spectrum to remove noise
+	spectrumTemp = np.clip(spectrum, a_min = 0, a_max = clipVal)
 	
 	## Plotting uncalibrated spectrum
-	plotData(binning, spectrum, plotArgs)
+	plotData(binning, spectrumTemp, plotArgs)
 
 	## Showing plot
 	plt.show()
@@ -132,7 +148,7 @@ def createCalibration(filePath):
 		}
 		
 		## Plotting uncalibrated spectrum
-		plotData(binning, spectrum, plotArgs)
+		plotData(binning, spectrumTemp, plotArgs)
 
 		## Showing plot
 		plt.show()
@@ -247,6 +263,22 @@ def displaySpectrum(filePath, caliPath, save=False):
 
 		# Set no bounds
 		xBounds = None
+
+	# Check how many bins the spectrum contains
+	nBins = len(spectrum)
+
+	# A good guess for where the noise drops to zero is around bin 100.
+	# This is about a tenth of the way into the spectrum.
+
+	# Extrapolate a cutoff
+	cutoff = int(nBins/10)
+
+	# Find the largest value in the spectrum beyond the cutoff.
+	# Set the clip value to 1.5 times this.
+	clipVal = np.max(spectrum[cutoff:])*1.5
+
+	# Clip the spectrum to remove noise
+	spectrum = np.clip(spectrum, a_min = 0, a_max = clipVal)
 
 	## Plot data
 	plotData(energies, spectrum, plotArgs, xBounds=xBounds)
@@ -431,10 +463,10 @@ if __name__ == '__main__':
 	# python main.py --src spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt --calibrate
 
 	# To display a spectrum:
-	# python main.py --src spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt --cSrc cCurves/demo/2022_12_02_CdTe_Zn_01_no_purge_curve.csv --display
+	# python main.py --src spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt --cSrc cCurves\demo\2022_12_02_CdTe_Zn_01_no_purge_curve.csv --display
 
 	# To create a csv of a spectrum:
-	# python main.py --src spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt --cSrc cCurves/demo/2022_12_02_CdTe_Zn_01_no_purge_curve.csv --csv
+	# python main.py --src spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt --cSrc cCurves\demo\2022_12_02_CdTe_Zn_01_no_purge_curve.csv --csv
 
 	## Metadata
 	# Note: Data is stored in the STEAM shared Google Drive at .
