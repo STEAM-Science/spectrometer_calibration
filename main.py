@@ -19,8 +19,8 @@ from gauss import *
 from llsfit import *
 
 
-### Create calibration for an element using known spectrum
-def createCalibration(filePath):
+### Create calibration points of known spectrum
+def calibrationPoints(filePath):
 
 	## Normalize filepath
 	filePath = os.path.normpath(filePath)
@@ -32,25 +32,25 @@ def createCalibration(filePath):
 	element = pathComps[-1].split('_')[4]
 
 	## Filename as calibration curve
-	outFile = pathComps[-1].split('.')[-2] + "_curve.csv"
+	outFile = pathComps[-1].split('.')[-2] + "_points.csv"
 
 	## File path to create in output
 	outDir = pathComps[-2]
 
 	## Output path
-	outPath = os.path.join("cCurves", outDir, outFile)
+	outPath = os.path.join("cPoints", outDir, outFile)
 
-	## If directory for calibration curve outputs does not exist
-	if not os.path.isdir("cCurves/"):
+	## If directory for calibration points outputs does not exist
+	if not os.path.isdir("cPoints/"):
 
 		# Make directory for calibration files
-		os.mkdir("cCurves/")
+		os.mkdir("cPoints/")
 
 	## If directory for output directory does not exist
-	if not os.path.isdir(os.path.join("cCurves", outDir)):
+	if not os.path.isdir(os.path.join("cPoints", outDir)):
 
 		# Make directory for output files
-		os.mkdir(os.path.join("cCurves", outDir))
+		os.mkdir(os.path.join("cPoints", outDir))
 
 	## Check if the calibration curve already exists
 	if len(glob.glob(outPath)) > 0:
@@ -121,11 +121,11 @@ def createCalibration(filePath):
 
 	## Get an input of number of peaks
 	numPeaks = 0
-	while numPeaks < 2:
-		numPeaks = int(getNumericalInput('Input number of peaks to fit (minimum 2 required): '))
+	while numPeaks < 1:
+		numPeaks = int(getNumericalInput('Input number of peaks to fit (minimum 1): '))
 
 	## Create list to store calibration points
-	calibration = []
+	points = []
 
 	## For every peak in the range
 	for nPeak in range(1, numPeaks+1):
@@ -163,28 +163,95 @@ def createCalibration(filePath):
 		pEnergy = NISTCoords[pNum-1, 0]
 
 		## Add pair of calibration point to array with uncertainty
-		calibration.append(np.array([mean, pEnergy, sigma]))
+		points.append(np.array([mean, pEnergy, sigma]))
 
 	## Convert calibration points to array
-	calibration = np.asarray(calibration)
+	points = np.asarray(points)
 
 	## Get list of 'x' and 'y' calibration points
-	calibration = calibration.T
+	points = points.T
+
+	## Create dictionary of calibration datapoints
+	pointsDict = {
+		'mu': points[0],
+		'E': points[1],
+		'sigma': points[2],
+	}
+
+	## Create pandas dataframe from dictionary
+	df = pd.DataFrame.from_dict(pointsDict)
+
+	## Save calibration data to csv
+	df.to_csv(outPath, index=False, encoding='utf-8')
+
+	print(f'\nSaved calibration datapoints to {outPath}.')
+
+### Create a calibration curve
+def createCalibration():
+
+	## If directory for calibration curve outputs does not exist
+	if not os.path.isdir("cCurves/"):
+
+		# Make directory for calibration files
+		os.mkdir("cCurves/")
+
+	## List to store files of calibration points
+	pointAdds = []
+
+	## Flag to store whether more points must be added
+	morePoints = True
+
+	## Obtain points from variety of sources
+	while morePoints:
+
+		# Get input of file address
+		newFile = input('Input path to points file: ')
+
+		# If this file does not exist
+		while len(glob.glob(newFile)) == 0:
+
+			# Get input of file address
+			newFile = input('File not found! Input path to points file: ')
+
+		# Add file address to calibration points
+		pointAdds.append(newFile)
+
+		# Ask user if more 
+		morePoints = input('Add more .csv files with points? (Y/[N])')
+
+		# If user wants to add more
+		if morePoints == 'Y':
+			morePoints = True
+		# If user does not want to add more
+		else:
+			morePoints = False
+
+	## Create arrays to store points
+	mus = np.array([])
+	Es = np.array([])
+	sigmas = np.array([])
+
+	## Go through every address
+	for pointAdd in pointAdds:
+
+		# Load dataframe
+		df = pd.read_csv(pointAdd, index_col=False)
+
+		# Add points to arrays
+		mus = np.concatenate((mus, df['mu']))
+		Es = np.concatenate((Es, df['E']))
+		sigmas = np.concatenate((sigmas, df['sigma']))
 
 	## Get calibration curve
-	m = m_unweighted(calibration[0], calibration[1])
-	b = b_unweighted(calibration[0], calibration[1])
-	mErr = sig_m_unweighted(calibration[0], calibration[1])
-	bErr = sig_b_unweighted(calibration[0], calibration[1])
+	m = m_unweighted(mus, Es)
+	b = b_unweighted(mus, Es)
+	mErr = sig_m_unweighted(mus, Es)
+	bErr = sig_b_unweighted(mus, Es)
 
 	print(f'\nFinal calibration curve: y = {m:.3g}x + {b:.3g}')
 	print(f'Errors:')
 	print(f'm = {m:.4f} ± {mErr:.4f}')
 	print(f'b = {b:.4f} ± {bErr:.4f}')
-			
-	## Get current date and time
-	dt = datetime.datetime.now()
-	date = dt.strftime("%Y_%m_%d")
 
 	## Create dictionary of calibration values
 	calibration = {
@@ -197,8 +264,58 @@ def createCalibration(filePath):
 	## Create pandas dataframe from dictionary
 	df = pd.DataFrame.from_dict(calibration)
 
+	## Create dictionary of calibration values
+	points = {
+		'mu': mus,
+		'E': Es,
+		'sigma': sigmas,
+	}
+
+	## Create pandas dataframe from dictionary
+	dfPoints = pd.DataFrame.from_dict(points)
+
+	## Name of file
+	name = input('\nInput name of calibration curve (.csv will be added at the end): ')
+
+	## Path to calibration curve output
+	outPath = os.path.join("cCurves", name+'.csv')
+
+	## Path to calibration curve points output
+	outPathPoints = os.path.join("cCurves", name+'_points.csv')
+
+	## Path to calibration curve graph output
+	outPathFig = os.path.join("cCurves", name+'_graph.png')
+
 	## Save calibration data to csv
 	df.to_csv(outPath, index=False, encoding='utf-8')
+
+	## Save calibration datapoints to csv
+	dfPoints.to_csv(outPathPoints, index=False, encoding='utf-8')
+
+	## Clearing plot
+	plt.clf()
+
+	## Plotting the points with fit curve
+	plt.scatter(mus, Es, label='datapoints', color='k', zorder=2)
+
+	## Points to display fit
+	xsFit = np.linspace(0, 1024, num=int(1e3))
+	EsFit = m*xsFit + b
+
+	## Plotting calibration curve
+	plt.plot(xsFit, EsFit, color='b', label=f'fit (y = {m:.5f} x + {b:.5f})', zorder=1)
+
+	## Plot properties
+	plt.xlabel('MCA channel')
+	plt.ylabel('energy (keV)')
+	plt.xlim(0, 1023)
+	plt.legend()
+
+	## Save figure
+	plt.savefig(outPathFig, dpi=300)
+
+	## Displaying plot
+	plt.show()
 
 	print(f'\nSaved calibration curve to {outPath}.')
 
@@ -392,13 +509,23 @@ def createCsv(filePath, caliPath):
 ### Main functioning of script
 def main(args):
 
+	## Check if user wants to fit calibration datapoints
+	if args.cPoints:
+
+		print(f"Fitting calibration curve points from {args.src}.\n")
+
+		# Run createCalibration
+		calibrationPoints(args.src)
+
+		return
+
 	## Check if user wants to create a calibration file
 	if args.calibrate:
 
-		print(f"Calibrating with {args.src}.\n")
+		print(f"Creating a calibration curve.\n")
 
 		# Run createCalibration
-		createCalibration(args.src)
+		createCalibration()
 
 		return
 
@@ -436,8 +563,11 @@ if __name__ == '__main__':
 	## Create new parser
 	parser = argparse.ArgumentParser(description='Process inputs to calibrate spectra.')
 
-	## Choose spectrum sourse
+	## Choose spectrum source
 	parser.add_argument('--src', action='store', nargs='?', type=str, default='spectra/demo/2022_12_02_CdTe_Zn_01_no_purge.txt', help='Spectrum source file.')
+
+	## Choose whether to create spectrum calibration file
+	parser.add_argument('--cPoints', action='store_true', help='Choose whether to fit points to get calibration points.')
 
 	## Choose whether to create spectrum calibration file
 	parser.add_argument('--calibrate', action='store_true', help='Choose whether to create spectrum calibration file.')
@@ -459,8 +589,11 @@ if __name__ == '__main__':
 
 	## Example commands:
 
-	# To calibrate a spectrum:
-	# python main.py --src spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt --calibrate
+	# To obtain calibration points:
+	# python main.py --src spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt --cPoints
+
+	# To create a calibration curve from many points:
+	# python main.py --calibrate
 
 	# To display a spectrum:
 	# python main.py --src spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt --cSrc cCurves\demo\2022_12_02_CdTe_Zn_01_no_purge_curve.csv --display

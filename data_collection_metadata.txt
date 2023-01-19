@@ -1,0 +1,55 @@
+### Metadata for curve fitting to data
+
+Data from testing is stored here: https://drive.google.com/drive/folders/1rcfaDmzqOL7TGXesyyXhKRsfRpkerUmS?usp=share_link
+
+## Peaks that can be fit:
+
+## CdTe
+
+# Am - 5
+
+Peaks in descending order of relative counts:
+
+Peak Index (NIST): Energy (keV)
+
+ - 3: 13.946
+ - 9: 17.751
+ - 6: 16.816
+ - 11: 20.784
+ - 15: 26.3448
+
+# Ba - 4
+
+Double-check this. May be 3 instead (lowest energy peak (peak 4) may be contamination).
+
+Peaks in descending order of relative counts:
+
+Peak Index (NIST): Energy (keV)
+
+ - 15: 30.973
+ - 17: 34.987
+ - 4: 16.816
+ - 19: 35.818
+
+# Cd - 2
+
+Peaks in descending order of relative counts:
+
+Peak Index (NIST): Energy (keV)
+
+ - 15: 22.163
+ - 17: 24.943
+
+# Fe - 2
+
+Peak Index (NIST): Energy (keV)
+
+ - 10: 5.899
+ - 12: 6.49
+
+# Zn - 2
+
+Peak Index (NIST): Energy (keV)
+
+ - 10: 8.048
+ - 12: 8.905
