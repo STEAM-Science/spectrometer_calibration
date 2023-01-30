@@ -347,7 +347,7 @@ def obtainPeak(binning, spectrum, element, clipVal=0):
 	plt.show()
 
 	## Return fit parameters
-	return popt
+	return popt, intCounts
 
 ### Prints out a spectrum to select peaks
 def printSpectrum(coords, units='keV'):

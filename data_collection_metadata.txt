@@ -18,9 +18,7 @@ Peak Index (NIST): Energy (keV)
  - 11: 20.784
  - 15: 26.3448
 
-# Ba - 4
-
-Double-check this. May be 3 instead (lowest energy peak (peak 4) may be contamination).
+# Ba - 3
 
 Peaks in descending order of relative counts:
 
@@ -28,7 +26,6 @@ Peak Index (NIST): Energy (keV)
 
  - 15: 30.973
  - 17: 34.987
- - 4: 16.816
  - 19: 35.818
 
 # Cd - 2
@@ -53,3 +50,82 @@ Peak Index (NIST): Energy (keV)
 
  - 10: 8.048
  - 12: 8.905
+
+## SDD
+
+# Am - 5
+
+Peaks in descending order of relative counts:
+
+Peak Index (NIST): Energy (keV)
+
+ - 3: 13.946
+ - 9: 17.751
+ - 6: 16.816
+ - 11: 20.784
+ - 1: 11.871
+
+# Ba - 5
+
+Peaks in descending order of relative counts:
+
+Peak Index (NIST): Energy (keV)
+
+ - 4: 4.286
+ - 7: 4.717
+ - 9: 4.934
+ - 10: 5.281
+ - 12: 5.553
+
+# Fe - 2
+
+Peak Index (NIST): Energy (keV)
+
+ - 10: 5.899
+ - 12: 6.49
+
+# Zn - 2
+
+Peak Index (NIST): Energy (keV)
+
+ - 10: 8.048
+ - 12: 8.905
+
+## Calibration curves and source points
+
+# EM CdTe curve 1
+
+cCurves/EM_CdTe_curve_1.csv
+
+Final curve:
+m = 0.0422209654131807
+sig_m = 0.0000627192121307366
+b = -0.124451695322015
+sig_b = 0.0327085180678312
+
+R-squared = 0.999973520205211
+
+source files:
+cPoints\2022_09_28\2022_09_28_CdTe_Am_02_points.csv
+cPoints\2022_09_28\2022_09_28_CdTe_Ba_02_points.csv
+cPoints\2022_09_28\2022_09_28_CdTe_Cd_02_points.csv
+cPoints\2022_09_28\2022_09_28_CdTe_Fe_01_points.csv
+cPoints\2022_09_28\2022_09_28_CdTe_Zn_01_points.csv
+
+# EM SDD curve 1
+
+cCurves/EM_SDD_curve_1.csv
+
+Final curve:
+m = 0.0242360254059904
+sig_m = 0.000042426845751119
+b = 0.00533236382867816
+sig_b = 0.0193383972209441
+
+R-squared = 0.999963227431331
+
+source files:
+cPoints\2022_10_14\2022_10_14_SDD_Am_02_points.csv
+cPoints\2022_10_14\2022_10_14_SDD_Ba_01_points.csv
+cPoints\2022_10_14\2022_10_14_SDD_Fe_01_points.csv
+cPoints\2022_10_14\2022_10_14_SDD_Zn_01_points.csv

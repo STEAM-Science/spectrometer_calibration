@@ -157,13 +157,16 @@ def calibrationPoints(filePath):
 		pNum = int(getNumericalInput('Input index of NIST peak to fit: '))
 
 		## Obtain fit gaussian from spectrum
-		A, sigma, mean = obtainPeak(binning, spectrum, element)
+		popt, intCounts = obtainPeak(binning, spectrum, element)
+
+		## Unpacking fit parameters
+		A, sigma, mean = popt
 
 		## Get energy of fit peak
 		pEnergy = NISTCoords[pNum-1, 0]
 
 		## Add pair of calibration point to array with uncertainty
-		points.append(np.array([mean, pEnergy, sigma]))
+		points.append(np.array([mean, pEnergy, sigma, A, intCounts]))
 
 	## Convert calibration points to array
 	points = np.asarray(points)
@@ -176,6 +179,8 @@ def calibrationPoints(filePath):
 		'mu': points[0],
 		'E': points[1],
 		'sigma': points[2],
+		'A': points[3],
+		'intCounts': points[4]
 	}
 
 	## Create pandas dataframe from dictionary
@@ -253,12 +258,23 @@ def createCalibration():
 	print(f'm = {m:.4f} ± {mErr:.4f}')
 	print(f'b = {b:.4f} ± {bErr:.4f}')
 
+	## Calculating r-squared
+
+	## Model-predicted energies
+	modelEs = m*mus + b
+
+	## R-squared
+	rsq = 1 - (np.sum((Es - modelEs)**2)/np.sum((Es - np.mean(Es))**2))
+
+	print(f'r-squared = {rsq:.4f}')
+
 	## Create dictionary of calibration values
 	calibration = {
 		'm': np.array([m]),
 		'b': np.array([b]),
 		'mErr': np.array([mErr]),
 		'bErr': np.array([bErr]),
+		'r-squared': np.array([rsq]),
 	}
 
 	## Create pandas dataframe from dictionary
@@ -599,7 +615,7 @@ if __name__ == '__main__':
 	# python main.py --src spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt --cSrc cCurves\demo\2022_12_02_CdTe_Zn_01_no_purge_curve.csv --display
 
 	# To create a csv of a spectrum:
-	# python main.py --src spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt --cSrc cCurves\demo\2022_12_02_CdTe_Zn_01_no_purge_curve.csv --csv
+	# python main.py --csv --src spectra\2022_09_30\2022_09_30_CdTe_Zn_02.txt --cSrc cCurves\EM_CdTe_Calibration_Curve_1\EM_CdTe_curve_1.csv
 
 	## Metadata
 	# Note: Data is stored in the STEAM shared Google Drive at .
