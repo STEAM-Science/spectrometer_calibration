@@ -55,7 +55,7 @@ def calibrationPoints(filePath):
 	## Check if the calibration curve already exists
 	if len(glob.glob(outPath)) > 0:
 
-		print(f'Calibration curve {outFile} already exists! Delete or rename before running again.')
+		print(f'File {outFile} already exists! Delete or rename before running again.')
 
 		print(f'\nPath to existing file: {outPath}')
 

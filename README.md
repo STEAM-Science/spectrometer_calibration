@@ -8,6 +8,24 @@ Python code to create calibration curves for Amptek CdTe (hard) and FastSDD (sof
 
 Data is stored in the STEAM shared Google Drive [here](https://drive.google.com/drive/folders/1rcfaDmzqOL7TGXesyyXhKRsfRpkerUmS?usp=share_link).
 
+## 0. Installation
+
+Create a conda environment using:
+
+`conda create --name specEnv --file requirements.txt`
+
+Activate this with:
+
+`conda activate specEnv`
+
+and install mpl_point_clicker
+
+`pip install mpl-point-clicker`
+
+Deactivate as required with
+
+`conda deactivate specEnv`
+
 ## 1. Obtaining calibration points
 
 Calibration points can be obtained by fitting known spectral peaks to their corresponding energies. This is done using the `--cPoints` flag while running `main.py`.
