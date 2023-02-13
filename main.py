@@ -31,6 +31,9 @@ def calibrationPoints(filePath):
 	## Find element from filePath
 	element = pathComps[-1].split('_')[4]
 
+	if len(element) > 2:
+		element = element[:2]
+
 	## Filename as calibration curve
 	outFile = pathComps[-1].split('.')[-2] + "_points.csv"
 
@@ -127,10 +130,13 @@ def calibrationPoints(filePath):
 	## Create list to store calibration points
 	points = []
 
-	## For every peak in the range
-	for nPeak in range(1, numPeaks+1):
+	## Iterator
+	nPeak = 1
 
-		print(f'\n\nChoose peak {nPeak} from {element} spectrum.')
+	## For every peak in the range
+	while nPeak < numPeaks+1:
+
+		print(f'\n\nChoose peak {nPeak} (or {nPeak} and {nPeak+1} in doublet) from {element} spectrum.')
 
 		## Display NIST coords
 		printSpectrum(NISTCoords, units='keV')
@@ -154,19 +160,121 @@ def calibrationPoints(filePath):
 		plt.show()
 
 		## Get an input of peak index
-		pNum = int(getNumericalInput('Input index of NIST peak to fit: '))
+		pNum = int(getNumericalInput('Input index of NIST peak to fit (enter 999 for double peak): '))
 
-		## Obtain fit gaussian from spectrum
-		popt, intCounts = obtainPeak(binning, spectrum, element)
+		## Check if single peak
+		if pNum != 999:
 
-		## Unpacking fit parameters
-		A, sigma, mean = popt
+			# Obtain fit gaussian from spectrum
+			popt, pcov, intCounts = obtainPeak(binning, spectrum, element)
 
-		## Get energy of fit peak
-		pEnergy = NISTCoords[pNum-1, 0]
+			# Unpacking fit parameters
+			A, sigma, mean = popt
 
-		## Add pair of calibration point to array with uncertainty
-		points.append(np.array([mean, pEnergy, sigma, A, intCounts]))
+			# Unpacking errors on fit parameters
+			errA = np.sqrt(pcov[0, 0])
+			errSigma = np.sqrt(pcov[1, 1])
+			errMean = np.sqrt(pcov[2, 2])
+
+			# Get energy of fit peak
+			pEnergy = NISTCoords[pNum-1, 0]
+
+			# Add pair of calibration point to array with uncertainty
+			points.append(np.array([mean, errMean, pEnergy, sigma, errSigma, A, errA, intCounts]))
+
+			# Iterate
+			nPeak += 1
+
+		## If a double peak
+		else:
+
+			print('\nFitting a gaussian doublet. Ensure you go from left to right!')
+
+			# Obtain peak indices
+			pNum1 = int(getNumericalInput('Input index of lower energy NIST peak in doublet:  '))
+			pNum2 = int(getNumericalInput('Input index of higher energy NIST peak in doublet: '))
+
+			print('\nFitting first peak in doublet: ')
+
+			# Obtain fit gaussian from spectrum
+			popt1, pcov1, intCounts1, xCoords1 = obtainPeak(binning, spectrum, element, doublet=True)
+
+			print('\nFitting second peak in doublet: ')
+
+			# Obtain fit gaussian from spectrum
+			popt2, pcov2, intCounts2, xCoords2 = obtainPeak(binning, spectrum, element, doublet=True)
+
+			# Temporary variables
+			t11, t12, t13 = popt1
+			t21, t22, t23 = popt2
+
+			# Obtain predicted fit params for double gaussian
+			p0Double = np.array([t11, t12, t13, t21, t22, t23])
+
+			# Creating mask for slicing
+			mask = (binning > xCoords1[0])*(binning < xCoords2[-1])
+
+			# Slicing spectrum to fit double gaussian
+			binningSlice = binning[mask]
+			spectrumSlice = spectrum[mask]
+
+			# Compute double gaussian fit
+			popt, pcov = curve_fit(doubleGaussian, binningSlice, spectrumSlice, p0=p0Double)
+
+			# Estimated integrated counts from gaussian
+			intCounts1 = np.sum(spectrum[int(xCoords1[0]): int(xCoords1[-1])])
+			intCounts2 = np.sum(spectrum[int(xCoords2[0]): int(xCoords2[-1])])
+
+			print('\nEstimated fit parameters (peak 1):')
+			print('A1 = {:.7g}'.format(popt[0]))
+			print('σ1 = {:.7g}'.format(popt[1]))
+			print('μ1 = {:.7g}'.format(popt[2]))
+
+			print('\nEstimated fit parameters (peak 2):')
+			print('A2 = {:.7g}'.format(popt[3]))
+			print('σ2 = {:.7g}'.format(popt[4]))
+			print('μ2 = {:.7g}'.format(popt[5]))
+
+			# Unpacking fit parameters
+			A1, sigma1, mean1, A2, sigma2, mean2 = popt
+
+			# Create dictionary to store plotting parameters
+			plotArgs = {
+				'color': 'k',
+				'label': 'data',
+				'xlabel': 'MCA bin',
+				'ylabel': 'counts',
+				'title': f'{element}: fitted double gaussian',
+				'legend': True
+			}
+
+			# Plot data from spectrum
+			plotData(binningSlice, spectrumSlice, plotArgs, xBounds=(int(xCoords1[0]), int(xCoords2[-1])))
+
+			# Plot fit spectrum
+			plt.plot(binningSlice, doubleGaussian(binningSlice, *popt), label='fit')
+
+			# Display spectrum
+			plt.show()
+
+			# Unpacking errors on fit parameters
+			errA1 = np.sqrt(pcov[0, 0])
+			errSigma1 = np.sqrt(pcov[1, 1])
+			errMean1 = np.sqrt(pcov[2, 2])
+			errA2 = np.sqrt(pcov[3, 3])
+			errSigma2 = np.sqrt(pcov[4, 4])
+			errMean2 = np.sqrt(pcov[5, 5])
+
+			# Get energies of fit peaks
+			pEnergy1 = NISTCoords[pNum1-1, 0]
+			pEnergy2 = NISTCoords[pNum2-1, 0]
+
+			# Add pair of calibration point to array with uncertainty
+			points.append(np.array([mean1, errMean1, pEnergy1, sigma1, errSigma1, A1, errA1, intCounts1]))
+			points.append(np.array([mean2, errMean2, pEnergy2, sigma2, errSigma2, A2, errA2, intCounts2]))
+
+			# Iterate
+			nPeak += 2
 
 	## Convert calibration points to array
 	points = np.asarray(points)
@@ -177,10 +285,16 @@ def calibrationPoints(filePath):
 	## Create dictionary of calibration datapoints
 	pointsDict = {
 		'mu': points[0],
-		'E': points[1],
-		'sigma': points[2],
-		'A': points[3],
-		'intCounts': points[4]
+		'muErr': points[1],
+		'muRErr': points[1]/points[0],
+		'E': points[2],
+		'sigma': points[3],
+		'sigmaErr': points[4],
+		'sigmaRErr': points[4]/points[3],
+		'A': points[5],
+		'AErr': points[6],
+		'ARErr': points[6]/points[5],
+		'intCounts': points[7],
 	}
 
 	## Create pandas dataframe from dictionary

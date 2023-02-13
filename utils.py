@@ -206,7 +206,7 @@ def plotData(xs, ys, plotArgs, xBounds=None, yBounds=None):
 		plt.legend()
 
 ### Fit peak in spectrum manually
-def obtainPeak(binning, spectrum, element, clipVal=0):
+def obtainPeak(binning, spectrum, element, clipVal=0, doublet=False):
 
 	## First, we will deal with the noise. There are two ways to do this.
 	## Either the user has already defined a clip value, and all values above
@@ -346,8 +346,12 @@ def obtainPeak(binning, spectrum, element, clipVal=0):
 	## Show plots
 	plt.show()
 
+	## If doublet, start and end are needed
+	if doublet:
+		return popt, pcov, intCounts, (startX, endX)
+
 	## Return fit parameters
-	return popt, intCounts
+	return popt, pcov, intCounts
 
 ### Prints out a spectrum to select peaks
 def printSpectrum(coords, units='keV'):

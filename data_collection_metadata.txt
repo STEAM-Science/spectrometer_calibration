@@ -93,39 +93,200 @@ Peak Index (NIST): Energy (keV)
 
 ## Calibration curves and source points
 
+### EM CdTe Comprehensive test 215K
+
 # EM CdTe curve 1
 
 cCurves/EM_CdTe_curve_1.csv
 
 Final curve:
-m = 0.0422209654131807
-sig_m = 0.0000627192121307366
-b = -0.124451695322015
-sig_b = 0.0327085180678312
+ - m = 0.0422209654131807
+ - sig_m = 0.0000627192121307366
+ - b = -0.124451695322015
+ - sig_b = 0.0327085180678312
 
 R-squared = 0.999973520205211
 
 source files:
-cPoints\2022_09_28\2022_09_28_CdTe_Am_02_points.csv
-cPoints\2022_09_28\2022_09_28_CdTe_Ba_02_points.csv
-cPoints\2022_09_28\2022_09_28_CdTe_Cd_02_points.csv
-cPoints\2022_09_28\2022_09_28_CdTe_Fe_01_points.csv
-cPoints\2022_09_28\2022_09_28_CdTe_Zn_01_points.csv
+ - cPoints\2022_09_28\2022_09_28_CdTe_Am_02_points.csv
+ - cPoints\2022_09_28\2022_09_28_CdTe_Ba_02_points.csv
+ - cPoints\2022_09_28\2022_09_28_CdTe_Cd_02_points.csv
+ - cPoints\2022_09_28\2022_09_28_CdTe_Fe_01_points.csv
+ - cPoints\2022_09_28\2022_09_28_CdTe_Zn_01_points.csv
+
+
+
+### EM CdTe Thermal Tests
+
+# EM CdTe curve 210K
+
+cCurves/EM_CdTe_curve_210K.csv
+
+Final curve:
+ - m = 0.0421607819986672
+ - sig_m = 0.000144014518846621
+ - b = -0.0506431274787813
+ - sig_b = 0.0578283797157626
+
+R-squared = 0.99994166356186
+
+source files:
+cPoints\2022_11_07\2022_11_07_CdTe_Fe55_210K_points
+cPoints\2023_01_24\2023_01_24_CdTe_Am241_209K_points
+
+
+# EM CdTe curve 215K
+
+cCurves/EM_CdTe_curve_215K.csv
+
+Final curve:
+ - m = 0.0421067165069545
+ - sig_m = 0.000157796688088379
+ - b = -0.0485677696145776
+ - sig_b = 0.0634367309480122
+
+R-squared = 0.999929784575791
+
+source files:
+ - cPoints\2022_11_07\2022_11_07_CdTe_Fe55_215K_points
+ - cPoints\2023_01_24\2023_01_24_CdTe_Am241_214K_points
+
+
+# EM CdTe curve 220K
+
+cCurves/EM_CdTe_curve_220K.csv
+
+Final curve:
+ - m = 0.0420462704632299
+ - sig_m = 0.000165494816616635
+ - b = -0.0489864841505104
+ - sig_b = 0.0666286127783068
+
+R-squared = 0.999922544868158
+
+source files:
+ - cPoints\2022_11_07\2022_11_07_CdTe_Fe55_220K_points
+ - cPoints\2023_01_24\2023_01_24_CdTe_Am241_219K_points
+
+
+# EM CdTe curve 225K
+
+cCurves/EM_CdTe_curve_225K.csv
+
+Final curve:
+ - m = 0.0420030185618361
+ - sig_m = 0.000158602951661825
+ - b = -0.0463639465772106
+ - sig_b = 0.063910659403183
+
+R-squared = 0.9999287146033
+
+source files:
+ - cPoints\2022_11_07\2022_11_07_CdTe_Fe55_225K_points
+ - cPoints\2023_01_24\2023_01_24_CdTe_Am241_223K_points
+
+
+# EM CdTe curve 230K
+
+cCurves/EM_CdTe_curve_230K.csv
+
+Final curve:
+ - m = 0.0419352616148832
+ - sig_m = 0.000151007061045886
+ - b = -0.0537332077579602
+ - sig_b = 0.0609724389142263
+
+R-squared = 0.999935169757656
+
+source files:
+ - cPoints\2022_11_07\2022_11_07_CdTe_Fe55_230K_points
+ - cPoints\2023_01_24\2023_01_24_CdTe_Am241_231K_points
+
+
+# EM CdTe curve 235K
+
+cCurves/EM_CdTe_curve_235K.csv
+
+Final curve:
+ - m = 0.0418078805188351
+ - sig_m = 0.000186361680884527
+ - b = -0.0391112747963685
+ - sig_b = 0.0754170920144162
+
+R-squared = 0.999900660082552
+
+source files:
+ - cPoints\2022_11_07\2022_11_07_CdTe_Fe55_235K_points
+ - cPoints\2023_01_24\2023_01_24_CdTe_Am241_236K_points
+
+
+# EM CdTe curve 240K
+
+cCurves/EM_CdTe_curve_240K.csv
+
+Final curve:
+ - m = 0.0417270628040327
+ - sig_m = 0.00019688548151115
+ - b = -0.0317198041093753
+ - sig_b = 0.0797982246265466
+
+R-squared = 0.999888695322449
+
+source files:
+ - cPoints\2022_11_07\2022_11_07_CdTe_Fe55_240K_points
+ - cPoints\2023_01_24\2023_01_24_CdTe_Am241_241K_points
+
+
+# EM CdTe curve 245K
+
+cCurves/EM_CdTe_curve_245K.csv
+
+Final curve:
+ - m = 0.0417465450664841
+ - sig_m = 0.000162185398312132
+ - b = -0.0349542330854359
+ - sig_b = 0.0657151925620926
+
+R-squared = 0.999924539503894
+
+source files:
+ - cPoints\2022_11_07\2022_11_07_CdTe_Fe55_245K_points
+ - cPoints\2023_01_24\2023_01_24_CdTe_Am241_247K_points
+
+
+# EM CdTe curve 250K
+
+cCurves/EM_CdTe_curve_250K.csv
+
+Final curve:
+ - m = 0.0417815064998074
+ - sig_m = 0.000154821209242401
+ - b = -0.0521560039870308
+ - sig_b = 0.0627371653606317
+
+R-squared = 0.999931351206373
+
+source files:
+ - cPoints\2022_11_07\2022_11_07_CdTe_Fe55_250K_points
+ - cPoints\2023_01_24\2023_01_24_CdTe_Am241_247K_points
+
+
+### EM SDD Comprehensive test 215 K
 
 # EM SDD curve 1
 
 cCurves/EM_SDD_curve_1.csv
 
 Final curve:
-m = 0.0242360254059904
-sig_m = 0.000042426845751119
-b = 0.00533236382867816
-sig_b = 0.0193383972209441
+ - m = 0.0242360254059904
+ - sig_m = 0.000042426845751119
+ - b = 0.00533236382867816
+ - sig_b = 0.0193383972209441
 
 R-squared = 0.999963227431331
 
 source files:
-cPoints\2022_10_14\2022_10_14_SDD_Am_02_points.csv
-cPoints\2022_10_14\2022_10_14_SDD_Ba_01_points.csv
-cPoints\2022_10_14\2022_10_14_SDD_Fe_01_points.csv
-cPoints\2022_10_14\2022_10_14_SDD_Zn_01_points.csv
+ - cPoints\2022_10_14\2022_10_14_SDD_Am_02_points.csv
+ - cPoints\2022_10_14\2022_10_14_SDD_Ba_01_points.csv
+ - cPoints\2022_10_14\2022_10_14_SDD_Fe_01_points.csv
+ - cPoints\2022_10_14\2022_10_14_SDD_Zn_01_points.csv

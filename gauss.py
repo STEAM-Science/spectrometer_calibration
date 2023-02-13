@@ -19,10 +19,11 @@ from llsfit import *
 ### Defining a Gaussian distribution of total counts
 ### such that the integral over all space is 'A'
 def gaussian(xs, A, sigma, mu):
-	temp = (xs - mu) / sigma
-	temp = -(1/2)*(temp**2)
-	temp = np.exp(temp)
 	return (A*np.exp(-(1/2)*(((xs - mu) / sigma)**2))) / (sigma*np.sqrt(2*np.pi))
+
+### Literally just two gaussians
+def doubleGaussian(xs, A1, sigma1, mu1, A2, sigma2, mu2):
+	return gaussian(xs, A1, sigma1, mu1) + gaussian(xs, A2, sigma2, mu2)
 
 ### Get Gaussian fit to data and integrate
 def getGaussFit(xs, ys, sigFigs=4):
