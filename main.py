@@ -359,13 +359,13 @@ def createCalibration():
 		# Add points to arrays
 		mus = np.concatenate((mus, df['mu']))
 		Es = np.concatenate((Es, df['E']))
-		sigmas = np.concatenate((sigmas, df['sigma']))
+		sigmas = np.concatenate((sigmas, df['muRErr']))
 
 	## Get calibration curve
-	m = m_unweighted(mus, Es)
-	b = b_unweighted(mus, Es)
-	mErr = sig_m_unweighted(mus, Es)
-	bErr = sig_b_unweighted(mus, Es)
+	m = m_weighted(mus, Es, sigmas)
+	b = b_weighted(mus, Es, sigmas)
+	mErr = sig_m_weighted(mus, Es, sigmas)
+	bErr = sig_b_weighted(mus, Es, sigmas)
 
 	print(f'\nFinal calibration curve: y = {m:.3g}x + {b:.3g}')
 	print(f'Errors:')
