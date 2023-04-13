@@ -114,6 +114,27 @@ source files:
  - cPoints\2022_09_28\2022_09_28_CdTe_Fe_01_points.csv
  - cPoints\2022_09_28\2022_09_28_CdTe_Zn_01_points.csv
 
+### EM CdTe Comprehensive test 215K unweighted
+
+# EM CdTe curve 1
+
+cCurves/EM_CdTe_curve_1.csv
+
+Final curve:
+ - m = 0.0421948206847887
+ - sig_m = 2.30842723762893E-07
+ - b = -0.0864027756143058
+ - sig_b = 0.000151513913627941
+
+R-squared = 0.999966390820624
+
+source files:
+ - cPoints\2022_09_28\2022_09_28_CdTe_Am_02_points.csv
+ - cPoints\2022_09_28\2022_09_28_CdTe_Ba_02_points.csv
+ - cPoints\2022_09_28\2022_09_28_CdTe_Cd_02_points.csv
+ - cPoints\2022_09_28\2022_09_28_CdTe_Fe_01_points.csv
+ - cPoints\2022_09_28\2022_09_28_CdTe_Zn_01_points.csv
+
 
 
 ### EM CdTe Thermal Tests (UNWEIGHTED)
@@ -440,6 +461,24 @@ Final curve:
  - sig_b = 0.0193383972209441
 
 R-squared = 0.999963227431331
+
+source files:
+ - cPoints\2022_10_14\2022_10_14_SDD_Am_02_points.csv
+ - cPoints\2022_10_14\2022_10_14_SDD_Ba_01_points.csv
+ - cPoints\2022_10_14\2022_10_14_SDD_Fe_01_points.csv
+ - cPoints\2022_10_14\2022_10_14_SDD_Zn_01_points.csv
+
+ # EM SDD curve weighted
+
+cCurves/EM_SDD_Calibration_Curve_weighted/EM_SDD_Calibration_Curve_weighted.csv
+
+Final curve:
+ - m = 0.0242941690547307
+ - sig_m = 2.13024256953033E-07
+ - b = -0.0110598873873698
+ - sig_b = 0.0000663060796565437
+
+R-squared = 0.999956082155507
 
 source files:
  - cPoints\2022_10_14\2022_10_14_SDD_Am_02_points.csv
