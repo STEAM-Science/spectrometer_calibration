@@ -1,5 +1,7 @@
-def calibration_points():
+import utils.spectrum as spectrum
+import utils.files as files
 
+def calibration_points():
 	"""
 
 	It extracts the element name from the file name, reads the corresponding NIST data, and prompts the user to select peaks to fit.
@@ -10,6 +12,8 @@ def calibration_points():
 	Args:
 		filePath (str): The path of the file containing the spectrum data.
 	"""
+	spectrum.process_spectrum()
+
 	print("Getting calibration points...")
 
 	# ... do something with the spectral data ...
