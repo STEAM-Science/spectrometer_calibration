@@ -42,11 +42,12 @@ def load_files():
 		user_input = input("Enter file path (blank to quit): ")
 	return filenames
 
-def create_csv(spectral_data):
+def create_csv():
 	"""
 	Creates a CSV file with the outputs from the Gaussian fit.
 
 	"""
+	print('look MA YOU MADE IT')
 
 def create_image():
 	"""

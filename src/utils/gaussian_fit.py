@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.optimize import curve_fit
 
 ### Defining a Gaussian distribution of total counts
 ### such that the integral over all space is 'A'
@@ -34,10 +35,10 @@ def gaussian_fit(x, y, sigFigs=4):
 		tuple: A tuple containing the parameters of the fitted Gaussian function, the covariance matrix of the parameters, and the maximum y-value of the fitted function.
 	"""
 	## Find peak value of line
-	max_count = np.amax(y)
+	max_counts = np.amax(y)
 
 	## Find half the peak
-	half_max = max_count//2
+	half_max = max_counts//2
 
 	## Find all points above half the peak
 	half_max_mask = (y >= half_max)
@@ -50,24 +51,24 @@ def gaussian_fit(x, y, sigFigs=4):
 	std_estimate = (endX - startX)/2.2
 
 	## Find energy of spectral line
-	peak_energy = x[np.where(y == max_count)[0][0]]
+	peak_energy = x[np.where(y == max_counts)[0][0]]
 
 	## Estimate for integral for area A
-	a_estimate = 2.2 * max_count * std_estimate
+	A_estimate = 2.2 * max_counts * std_estimate
 
 	print('Estimated fit parameters:')
-	print('A = {:.7g}'.format(a_estimate))
+	print('A = {:.7g}'.format(A_estimate))
 	print('σ = {:.7g}'.format(std_estimate))
 	print('μ = {:.7g}\n'.format(peak_energy))
 
 	## Fit the gaussian to the ROI
-	params_gauss, params_covariance = curve_fit(gaussian, xs, ys, p0=[a_estimate, std_estimate, peak_energy])
+	params_gauss, params_covariance = curve_fit(gaussian, x, y, p0=[A_estimate, std_estimate, peak_energy])
 
 	## Make sure fit parameters are positive
 	params_gauss = np.absolute(params_gauss)
 
 	print('Computed fit parameters:')
-	print(f'A = {a_estimate:.7g}')
+	print(f'A = {A_estimate:.7g}')
 	print('σ = {:.7g}'.format(params_gauss[1]))
 	print('μ = {:.7g}\n'.format(params_gauss[2]))
 

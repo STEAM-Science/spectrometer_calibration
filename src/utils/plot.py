@@ -1,3 +1,20 @@
+#import os
+#import re
+import numpy as np
+#import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.backend_bases import MouseButton
+from scipy.optimize import curve_fit
+#import glob
+#import cv2
+#import argparse
+#from scipy.stats import norm
+#import datetime
+from mpl_point_clicker import clicker
+
+import utils.gaussian_fit as gauss
+
+
 def plot_data(x, y, plotArgs, xBounds=None, yBounds=None):
 	"""
 	Plots the given data with the specified arguments.
@@ -12,8 +29,38 @@ def plot_data(x, y, plotArgs, xBounds=None, yBounds=None):
 	Returns:
 		None
 	"""
+	# Clear existing plots
+	plt.clf()
+
+	# Plot whole spectrum
+	plt.plot(x, y, color=plotArgs['color'], label=plotArgs['label'])
+
+	# If user specified x-bounds
+	if xBounds != None:
+
+		# Set x-bounds
+		plt.xlim(xBounds)
+
+	# If user specified y-bounds
+	if yBounds != None:
+
+	# Set y-bounds
+		plt.ylim(yBounds)
+
+		# Add title
+		plt.title(plotArgs['title'])
+
+		# Add axes labels
+		plt.xlabel(plotArgs['xlabel'])
+		plt.ylabel(plotArgs['ylabel'])
+
+	# If user wants to show a legend
+	if plotArgs['legend']:
+
+		# Add legend
+		plt.legend()
 	
-def select_peak():
+def select_peak(bins, spectrum, element, clipVal=0, doublet=False):
 	"""
     Selects a peak from a given spectrum and fits a Gaussian curve to it.
 
@@ -27,8 +74,109 @@ def select_peak():
     Returns:
         tuple: Tuple containing the fit parameters for the Gaussian curve, the covariance matrix, and the integrated counts at the peak.
     """
-	# ... do something with the coordinates ...
-	return	
+
+	## TODO: Cannont find instance where the user is asked where to clip
+	## the data, either add it or delete it --> I deleted it
+
+	# Check how many bins the spectrum contains
+	nBins = len(spectrum)
+
+	# Clipping noise (about bin 100 or 1/10 of the spectrum)
+	cutoff = int(nBins/10)
+
+	# Find the largest value in the spectrum after cuffoff
+	clipVal = np.max(spectrum[cutoff:])*1.5
+
+	# Clip spectrum at this point and remove noise
+	spectrum = np.clip(spectrum, a_min = 0, a_max = clipVal)
+
+	## Plot and display the spectrum
+	plotArgs = {
+		'color': 'k',
+		'label': 'data',
+		'xlabel': 'bin',
+		'ylabel': 'counts',
+		'title': f'{element}: Zoom into peak',
+		'legend': True
+	}
+
+	## Zoom into the region of interest
+	# Plot spectrum
+	plot_data(bins, spectrum, plotArgs)
+
+	# Get input points from user (click 2 points on the display)
+	points = np.asarray(plt.ginput(2))
+
+	# Close plot
+	plt.close()
+
+	# Get start and end 'x' coordinates
+	startX = points[0][0]
+	endX = points[1][0]
+
+	# Define x-bounds
+	xBounds = (startX, endX)
+
+	# For the y-bounds, mask spectrum and find maximum value
+	mask = (bins > startX)*(bins < endX)
+	masked_spectrum = spectrum[mask]
+	peak_height = np.max(masked_spectrum)
+
+	# Define y-bounds
+	startY = (-1)*peak_height*0.2
+	endY = peak_height*1.2
+	yBounds = (startY, endY)
+
+	# Plot zoomed in area
+	plotArgs['title'] = f'{element}: Zoomed in'
+	plot_data(bins, spectrum, plotArgs, xBounds=xBounds, yBounds=yBounds)
+
+	## Zooming further into the region for higher precision
+	# Get input points from user (click 2 points on the display)
+	points = np.asarray(plt.ginput(2))
+
+	# Close plot
+	plt.close()
+
+	# Get start and end 'x' coordinates 
+	startX = points[0][0]
+	endX = points[1][0]
+
+	## Obtain fit parameters for the Gaussian fit
+	width = endX - startX
+	extraR = 0.2
+
+	print(f'Fitting region from bin {startX:.2f} to find {endX:.2f}.\n')
+
+	## Plotting final fit over region
+	plotArgs['title'] = f'{element}: Gaussian fit to spectral line.'
+	plot_data(bins, spectrum, plotArgs, xBounds=xBounds, yBounds=yBounds)
+
+	# Masking the bins and calibrated spectrum
+	mask = (bins > startX)*(bins < endX)
+	masked_bins = bins[mask]
+	masked_spectrum = spectrum[mask]
+
+	# Fit the Gaussian to the region of interest (see gaussian_fit.py)
+	params_gauss, params_covariance, max_counts = gauss.gaussian_fit(masked_bins, masked_spectrum)
+
+	int_counts = gauss.integrate_gaussian(bins, spectrum, params_gauss, sigmas=3)
+
+	print(f'Integrated counts at peak: {int_counts:.4g}')
+
+	## Get counts for the fit curve
+	fit_counts = gauss.gaussian(masked_bins, *params_gauss) #*params_gauss -> gauss.params_gauss?
+
+	# Plot gaussian fit of region of interest
+	plt.plot(masked_bins, fit_counts, color='red', label='Gaussian fit')
+	plt.show()
+
+	## If doublet, the start and end x-values are needed
+	if doublet:
+		return params_gauss, params_covariance, int_counts, (startX, endX)
+
+	### Return fit parameters
+	return params_gauss, params_covariance, int_counts	
 
 def display_spectrum():
 	#spectral_data, calibration_path, save=False
@@ -60,4 +208,15 @@ def nist_data(coords, units='keV'):
 	Returns:
 		dict: A dictionary containing the retrieved data.
 	"""
-	# ... do something with the coordinates ...
+	## Print header
+	print("--------------------------------------")
+	print(f"index | energy ({units:3}) | relative counts")
+	print("--------------------------------------")
+
+    ## Go through every coordinate
+	for i, coord in enumerate(coords):
+
+        # Print coordinate with index
+		print(f"{i+1:5} | {coords[i][0]:12} | {coords[i][1]}")
+    
+	print("--------------------------------------")

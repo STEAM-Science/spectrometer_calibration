@@ -8,20 +8,27 @@ import utils.files as files
 
 def process_spectrum():
 	"""
-	This function prompts the user to choose between processing a folder or individual files.
-	It then loads the selected files and passes them to the read_spectrum function in the spectrum module.
+	Prompts the user to choose between processing a folder or individual files.
+	Loads the selected files and passes them to the read_spectrum function in the spectrum module.
+	
+	Returns:
+		spectral_data (list): A list of spectral data obtained from the loaded files.
 	"""
 	user_input = input("Do you want to process a folder (f) or individual files (i)?: ")
-	if user_input == "f":
+	
+	# Removing case sensitivity of user input
+	user_input_case = user_input.lower()
+	
+	if user_input_case == "f":
 		filenames = files.load_folder()
-	elif user_input == "i":
+	elif user_input_case == "i":
 		filenames = files.load_files()
 	else: 
 		raise ValueError("Invalid input")
-		# If multiple files are loaded, checking with user if they want to sum the spectra
-	
-	read_spectra(filenames)
 
+	print(len(filenames), "files loaded")
+	
+	# If multiple files are loaded, checking with user if they want to sum the spectra
 	if len(filenames) != 1:
 
 		# Ask user if they want to sum the spectra
@@ -29,13 +36,20 @@ def process_spectrum():
 		user_input_case = user_input.lower()
 
 		if user_input_case == "y":
-			sum_spectra(filenames)
-		else:
-			pass
+			return sum_spectra(filenames)
+		elif user_input_case == "n":
+			return read_spectra(filenames)
 		## TODO: if i want to further automate the process, i can check the filename for 
 		# instances where element = element and THEN ask if the user wishes to sum
 		# for filename in filenames:
 		# element = element then ask
+
+	if len(filenames) == 1:
+		return read_spectra(filenames)
+
+	print("\nDone reading all spectra!")
+ 
+
 
 ### Read uploaded spectrum file(s)
 def read_spectra(filenames):
@@ -48,6 +62,7 @@ def read_spectra(filenames):
 	Returns:
 		spectral_data (numpy array): A list of spectral data.
 	"""
+	spectral_data = []
 
 	## Obtaining data from loaded files	
 	for filename in filenames:
@@ -61,6 +76,7 @@ def read_spectra(filenames):
 		_, ext = os.path.splitext(filename)
 
 		## Check if csv or txt file and read file
+	
 		if ext == ".csv":
 			with open(filename) as file:
 
@@ -68,17 +84,18 @@ def read_spectra(filenames):
 				df = pd.read_csv(file)
 
 				# Get data (last row of .csv file) and convert to array
-				spectral_data = df.iloc[-1].to_numpy()
+				data = df.iloc[-1].to_numpy()
 
 				print("Done reading spectrum from", filename)
+				print(type(data))
 				## Return data as array
-				return spectral_data
+				append_data = spectral_data.append(data)
 
 		elif ext == ".txt":
 			with open(filename) as file:
 
 				# Lists to store lines from txt
-				spectral_data = []
+				data = []
 
 				lines = file.read().splitlines()
 
@@ -88,30 +105,32 @@ def read_spectra(filenames):
 					# Remove all non-data lines
 					if not re.search('[a-zA-Z]', line):
 				
-						spectral_data.append(line_list)
-			
-			## Return data as array
-			return np.asarray(spectral_data).astype(int)
+						data.append(line)
 
+				# Convert to array
+				data = np.asarray(data).astype(int)
+			
+				# Append to spectral_data
+				spectral_data.append(data)
+
+				print("Done reading spectrum from", filename)
+		
 		else:
 			raise ValueError("File format not supported! Please load a .csv or .txt file.")
-
-		#print("Done reading spectrum from", filename)
-	print("Done reading all spectra!")
-
+	
+	### Return data as an array
+	return spectral_data
 
 ### Sum multiple spectra from the same element
-import numpy as np
-
 def sum_spectra(filenames):
 	"""
-	Sums the spectra from a list of filenames.
+	Sums the spectra in the loaded list of filenames.
 
 	Args:
 		filenames (list): A list of filenames containing spectra data.
 
 	Returns:
-		numpy.ndarray: An array containing the summed spectra data.
+		spectral_data (numpy array): A list of spectral data.
 	"""
 	print("Summing spectra....")
 
