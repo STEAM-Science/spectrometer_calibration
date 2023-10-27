@@ -18,13 +18,22 @@ def main():
 	-rp, --response: determine the response of the spectrometer
 	"""
 	parser = argparse.ArgumentParser(description="Process and display spectra.")
-	parser.add_argument("-c", "--calibrate", help="create a calibration curve from multiple points",
+
+	parser.add_argument("-c", "--calibrate",
+						help="creates a calibration curve from multiple points",
 						action="store_true")
 	parser.add_argument("-cp", "--cpoints", 
-						help="This reads the data from your files and performs a Gaussian fit over the selected region. If you are processes multiple files, they must be from the same element.", action="store_true")
-	parser.add_argument("-d", "--display", help="display a calibrated spectrum", action="store_true")
-	parser.add_argument("-r", "--resolution", help="determine the resolution of the spectrometer", action="store_true")
-	parser.add_argument("-rp", "--response", help="determine the response of the spectrometer", action="store_true")
+						help= "reads spectrum data and performs a Gaussian fit over a selected region **Multiple files must be from the same element.", 
+						action="store_true")
+	parser.add_argument("-d", "--display", 
+						help="calibrate and display a spectrum", 
+						action="store_true")
+	parser.add_argument("-r", "--resolution", 
+						help="determine the resolution of the spectrometer", 
+						action="store_true")
+	parser.add_argument("-rp", "--response", 
+						help="determine the response of the spectrometer", 
+						action="store_true")
 
 	args = parser.parse_args()
 
@@ -79,7 +88,7 @@ def main():
 		Step 4. Save the response to a csv file using the function files.create_csv()
 		Step 5. Save the plot to an image file using the function files.create_image()
 		"""
-		calibrate.determine_response()
+		calibrate.detector_response()
 
 if __name__ == "__main__":
 	main()

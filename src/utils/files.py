@@ -13,7 +13,6 @@ Functions:
 - create_image(filename, output_path): Creates an image from a matplotlib plot and saves it to a specified output path.
 """
 
-
 ### Import libraries
 import pathlib
 import os
@@ -48,6 +47,7 @@ def load_folder():
 				filenames.append(file)
 				print("Added", file, "to list of files")
 		else:
+
 			raise ValueError("Folder path is not a directory")
 
 		user_input = input("Enter folder path (blank to quit): ")
@@ -134,7 +134,7 @@ def create_csv(data, name, folder_path):
 ### Creates an image with inputted data and saves it to the specified location
 def create_image(name, folder_path):
 
-	print('Creating image...')
+	print('Saving image...')
 
 	## Replacing double quotes with nothing from user input
 	## When copying from Windows Explorer, the path sometimes copied with double quotes, which would create an 
@@ -155,3 +155,6 @@ def create_image(name, folder_path):
 	file_path = folder_path + f"\{name}.png"
 
 	plt.savefig(file_path, bbox_inches='tight', dpi=300)
+
+	print("Save successful!")
+	print(f"Image saved as {name}_plot.png.")

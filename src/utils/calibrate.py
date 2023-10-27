@@ -6,6 +6,10 @@ This module provides functions for calibrating spectral data using NIST calibrat
 Functions:
 - calibration_points(): Performs a Gaussian fit over a selected region of interest and saves the results to a CSV file.
 - create_calibration_curve(): Creates a calibration curve from a set of input files containing calibration points. 
+- determine_resolution(): Determines the resolution of the spectrometer from a set of input files containing calibration results.
+- determine_response(): Determines the response of the spectrometer from a set of input files containing calibration results.
+- calibrate_spectrum(): Calibrates a spectrum using a calibration curve.
+
 """
 
 ### Importing libraries
@@ -347,7 +351,7 @@ def create_calibration_curve():
 	Additionally, it saves a plot of the calibration curve and displays it to the user.
 	"""
 
-	print("Creating calibration curve...\n")
+	print("Beginning calibration curve analysis...")
 
 	user_input = input("Do you want to process a folder (f) or individual files (i)?: ")
 	
@@ -383,7 +387,10 @@ def create_calibration_curve():
 			mus = np.concatenate((mus, df['mu']))
 			Es = np.concatenate((Es, df['E']))
 			sigmas = np.concatenate((sigmas, df['muRErr']))
-		
+			int_counts = np.concatenate((int_counts, df['intCounts']))
+			max_counts = np.concatenate((max_counts, df['max_counts']))
+			## TODO change intcounts
+
 		## Get calibration curve using functions from llsfit.py 
 		m = fit.m_weighted(mus, Es, sigmas)
 		b = fit.b_weighted(mus, Es, sigmas)
@@ -401,9 +408,11 @@ def create_calibration_curve():
 
 		## Creating dictionary to store points used to create calibration curve
 		combined = {
-			'mus': mus,
-			'Es': Es,
-			'sigmas': sigmas
+			'mu': mus,
+			'E': Es,
+			'sigma': sigmas,
+			'int_counts': int_counts,
+			'max_counts': max_counts
 		}
 
 		## Creating dictionary to store calibration curve values
@@ -436,7 +445,7 @@ def create_calibration_curve():
 
 		print("\nSaving complete.")
 		
-		print("Displaying calibration curve...")
+		print("\nDisplaying calibration curve...")
 
 		## Plot calibration curve
 		plt.clf()
@@ -463,12 +472,131 @@ def create_calibration_curve():
 		## Save figure using create_image function in files.py
 		files.create_image(csv_name, folder_path)
 
-		print(f"Calibration curve saved as {csv_name}_plot.png.")
 		print("\nCalibration Complete.\n")
 
 	## If there is an error raised, the program will stop iterating through the list of files
 	## and the user will have to start over.
 	except Exception as e:
-		print(f"Error Message: {e}")
+		print(f"\nError Message: {e}")
 
+	## Asking user if they wish to proceed to the next calibration step
+	advance = input("Would you like to continue to the resolution (r) or response (rp) analysis? Leave blank to exit: ")
+
+	# Removing case sensitivity of user input
+	advance_case = advance.lower()
+
+	# If user wishes to continue to the next step, call the next function (determine_resolution or determine_response)
+	while advance_case != "":
+
+		# Go to resolution analysis
+		if advance_case == "r":
+			return determine_resolution(advance_case, df_combined)
+		
+		# Go to response analysis
+		elif advance_case == "rp":
+			determine_response(advance_case, df_combined)
+
+		else:
+			raise ValueError("Invalid input")
+	
+	return df_combined
+
+def determine_response(advance=None, calibration_points=None):
+
+	## Either continuning from previous function or starting from scratch
+	# Start from scratch, uploading new file
+	if advance == None:
+
+		# Getting user input for calibration curve file path
+		print("Please only upload one file containing calibration curve points")
+		user_input = input("Calibration curve points file path: ")
+		user_input = user_input.replace('"', '')
+
+		# Obtain data
+		calibration_points = pd.read_csv(user_input, index_col=False) 
+	
+	# Continuing from previous function (create_calibration_curve or determine_resolution)
+	if advance == "rp":
+		pass
+		
+
+	print("Beginning detector response analysis...\n")
+	
+	## Calculating Full Width Half Max (FWHM)
+	fwhm = calibration_points['sigma'] * 2.355
+	E = calibration_points['E']
+
+	print(np.exp(-E))
+	## Creating a dictionary to store detector response data
+	df = {
+		'E (keV)': E,
+		'FWHM (keV)': fwhm
+	}
+
+	## Plotting detector response: FWHM vs E
+	plt.scatter(E, fwhm)
+	
+	# Getting user_input for name of plot and folder path
+	name = input("Input name of resolution plot: ")
+	folder_path = files.get_folder_path()
+
+	# Plot properties
+	plt.title(f'{name} Response')
+	plt.xlabel('Energy (keV)')
+	plt.ylabel('FWHM (keV)')
+
+	# Display plot
+	print("\nDisplaying detector response...")
+	plt.show()
+
+	# Save figure using create_image function in files.py
+	files.create_image(name, folder_path)
+
+	## Save detector response data to CSV file using create_csv function in files.py
+	files.create_csv(data, name, folder_path)
+	
+	print("\nComplete.")
+
+	## Asking user if they wish to proceed to the next calibration step
+	advance = input("Would you like to continue to the resolution (r) analysis? Leave blank to exit: ")
+
+	# Removing case sensitivity of user input
+	advance_case = advance.lower()
+
+	# If user wishes to continue to the next step, call the next function (determine_resolution)
+	while advance_case != "":
+
+		# Go to determine_resolution
+		if advance_case == "r":
+			return determine_resolution(advance_case, calibration_points)
+		else:
+			raise ValueError("Invalid input")
 	return
+
+def determine_resolution(advance=None, calibration_points=None):
+	
+	## Either continuning from previous function or starting from scratch
+	# Starting from scratch, uploading new file
+	if advance == None:
+		# Asking user for calibration curve file path
+		print("Please only upload one file containing calibration curve points")
+		user_input = input("Calibration curve points file path: ")
+		user_input = user_input.replace('"', '')
+
+		# Obtaining data from file
+		calibration_points = pd.read_csv(user_input, index_col=False)
+	
+	# Continuing from previous function (create_calibration_curve or determine_response)
+	if advance == "r":
+		pass
+
+	print("Beginning resolution analysis...\n")
+
+	max_counts = calibration_points['max_counts']
+
+
+def calibrate_spectrum():
+	return
+
+
+
