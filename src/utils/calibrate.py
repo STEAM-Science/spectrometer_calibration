@@ -1,10 +1,21 @@
+"""
+calibrate.py - A module for calibrating spectral data.
+
+This module provides functions for calibrating spectral data using NIST calibration points.
+
+Functions:
+- calibration_points(): Performs a Gaussian fit over a selected region of interest and saves the results to a CSV file.
+- create_calibration_curve(): Creates a calibration curve from a set of input files containing calibration points. 
+"""
+
+### Importing libraries
 import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
-
+## Importing functions from other python files
 import utils.spectrum as spectrum
 import utils.files as files
 import utils.gaussian_fit as gauss
@@ -12,57 +23,80 @@ import utils.plot as plot
 import utils.llsfit as fit
 
 def getNumericalInput(text):
+	"""
+	Prompts the user to input a numerical value and returns it as a float.
+
+	Args:
+		text (str): user input.
+
+	Returns:
+		float: The numerical value inputted by the user.
+
+	Raises:
+		ValueError: If the user inputs a non-numerical value.
+	"""
+
 	## Define temporary variable
 	num = 'temp'
+
 	## Check if number inputted
 	while not num.isnumeric():
+
 		# Get input
 		num = input(text)
+
 		# If this is not a numerical value
 		if not num.isnumeric():
 			print('Input a number!')
+
 	## Return input as float
 	return float(num)
 
 def calibration_points():
 	"""
 	Prompt the user to select regions of interest in a spectrum and fit Gaussian curves to them.
-	The parameters from the Gaussian fit are saved as a CSV file in the 'cPoints' directory.
-	If the calibration curve already exists, the function exits without performing any operation.
-
-	Args:
-		filePath (str): The path of the file containing the spectrum data.
+	The results from the Gaussian fit are saved as a CSV file in the 'cPoints' directory.
 	"""
 
-	user_input = input("What element is being calibrated?: ")
-	element = user_input.capitalize()
 
-	## Load selected file(s)
+	## Load selected file(s) using functions from spectrum.py
 	spectral_data = spectrum.process_spectrum()
 
 	num_items_to_process = len(spectral_data)
+
+	## Iterator
 	total_items_processed = 0
 
+	## Get folder path from user (where results will be saved)
 	folder_path = files.get_folder_path()
 
 	## For every spectrum in the list
 	for data_processed in spectral_data:
 		
+		# Iterating through all files in the list may raise an error or exception. To ensure the user does not have
+		# to start over, the program will continue to iterate through the list even if an error is raised.
 		try:
+			## Asks user which element is being calibrated
+			user_input = input("What element is being calibrated?: ")
+			element = user_input.capitalize()
+
+			# Obtain data file(s) from list (stored in a class)
 			data = data_processed.data
 			print("\nGetting calibration points...")
-			
 			
 			## Obtain binning
 			binning = np.arange(len(data))
 
-			## TODO: NIST PATH HERE
-			## Filepath to corresponding NIST spectrum
-			root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))			
+			## Filepath to corresponding NIST spectrum, this will be displayed later for the user to compare
+			## their spectrum to the NIST spectrum
+
+			# Get root directory
+			root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))	
+
+			# Find NIST data		
 			nist_path = f'{root_dir}/nist_data/Spectral_Lines_{element}.csv'
 			
-
-			## Read NIST data
+			# Read NIST data
 			nist_x, nist_y = np.loadtxt(nist_path, delimiter=',').T
 
 			# Create mask to clip data to below 50 keV
@@ -76,7 +110,7 @@ def calibration_points():
 			## Display spectrum (uncalibrated)
 			print("\nDisplaying uncalibrated spectrum. Select how many peaks to fit")
 
-			## Plot parameters
+			# Plot parameters
 			plotArgs = {
 				'color': 'k',
 				'label': 'data',
@@ -98,11 +132,12 @@ def calibration_points():
 			# Clip the spectrum to remove noise
 			spectrum_temp = np.clip(data, a_min = 0, a_max = clipVal)
 
-			## Plot and display the spectrum
+			# Plot and display the spectrum
 			plot.plot_data(binning, spectrum_temp, plotArgs)
 			plt.show()
 
-			## Get input points from user (click 2 points on the display)
+			## Allow user to select regions of interest
+			# Get input points from user (click 2 points on the display)
 			num_peaks = 0
 			while num_peaks < 1:
 				num_peaks = int(getNumericalInput("Input number of peaks to fit: "))
@@ -136,11 +171,13 @@ def calibration_points():
 				plot.plot_data(binning, spectrum_temp, plotArgs)
 				plt.show()
 
-				## Get input of peak index
+				## Get input of peak index from NIST data
 				peak_index = int(getNumericalInput("Input index of NIST peak fo fit (enter 999 for double peak): "))
 
 				# Check if single peak
 				if peak_index != 999:
+
+					## Obtain region of interest from user using select_peak function from plot.py 
 
 					# Obtain fit gaussian parameters
 					gauss_params, params_covariance, int_counts, max_counts = plot.select_peak(binning, data, element)
@@ -190,7 +227,7 @@ def calibration_points():
 					binning_slice = binning[mask]
 					spectrum_slice = data[mask]
 
-					# Compute double gaussian fit
+					# Compute double gaussian fit using double_gaussian function from gaussian_fit.py
 					gauss_params, params_covariance = curve_fit(gauss.double_gaussian, binning_slice, spectrum_slice, p0=p0_double)
 
 					# Estimate integrated counts from gaussian
@@ -216,7 +253,7 @@ def calibration_points():
 						'label': 'data',
 						'xlabel': 'MCA bin',
 						'ylabel': 'counts',
-						'title': f'{element}: fitted double gaussian',
+						'title': f'{element}: fitted double gaussian. Close to continue',
 						'legend': True
 					}
 
@@ -253,7 +290,7 @@ def calibration_points():
 			## Get list of 'x' and 'y' calibration points
 			points = points.T
 
-			pointsDict = {
+			points_dict = {
 				'mu': points[0],
 				'muErr': points[1],
 				'muRErr': points[1]/points[0],
@@ -269,25 +306,34 @@ def calibration_points():
 			}
 
 			## Create pandas dataframe from dictionary
-			df = pd.DataFrame.from_dict(pointsDict)
+			df = pd.DataFrame.from_dict(points_dict)
 
 			## Name of csv (Original filename + _points)
 			file_name = data_processed.filename + '_points'
 			
-			## Save dataframe to CSV file
+			## Save dataframe to CSV file using create_csv function in files.py
 			files.create_csv(df, file_name, folder_path)
 
 			print("Calibration points saved to CSV file.")
 
+			## Iterator
 			total_items_processed += 1
 
+		## If an error is raised, the program will continue to iterate through the list of files
 		except Exception as e:
+
+			# Tells user which file caused the error
 			print(f"Error processing {data_processed.filename}")
-			print(f"Error Message: {e}")
 			print("Please reprocess this file.")
 			print("Skipping file....")
 
+			# If there is a different error, tell user error. Ex: numpy error
+			print(f"Error Message: {e}")
+
+		## This block will always execute
 		finally:
+
+			# Print progress
 			print(f"{total_items_processed} of {num_items_to_process} files processed.")
 
 	return
@@ -301,13 +347,14 @@ def create_calibration_curve():
 	Additionally, it saves a plot of the calibration curve and displays it to the user.
 	"""
 
-	print("Creating calibration curve...")
+	print("Creating calibration curve...\n")
 
 	user_input = input("Do you want to process a folder (f) or individual files (i)?: ")
 	
 	# Removing case sensitivity of user input
 	user_input_case = user_input.lower()
 	
+	# Get list of files from user using functions from file.py
 	if user_input_case == "f":
 		calibration_points = files.load_folder()
 	elif user_input_case == "i":
@@ -317,82 +364,111 @@ def create_calibration_curve():
 	
 	print(len(calibration_points), "files loaded\n")
 
-	## Creating arrays to store calibration points
-	mus = np.array([])
-	Es = np.array([])
-	sigmas = np.array([])
+	## Iterating through all files in the list may raise an error or exception. To ensure the user does not have
+	## to start over, the program will continue to iterate through the list even if an error is raised.
+	try:
 
-	## Getting calibration points from each file
-	for data in calibration_points:
+		## Creating arrays to store calibration points
+		mus = np.array([])
+		Es = np.array([])
+		sigmas = np.array([])
 
-		df = pd.read_csv(data, index_col=False)
+		## Getting calibration points from each file
+		for data in calibration_points:
 
-		mus = np.concatenate((mus, df['mu']))
-		Es = np.concatenate((Es, df['E']))
-		sigmas = np.concatenate((sigmas, df['muRErr']))
-	
-	## Get calibration curve
-	m = fit.m_weighted(mus, Es, sigmas)
-	b = fit.b_weighted(mus, Es, sigmas)
-	m_err = fit.sig_m_weighted(mus, Es, sigmas)
-	b_err = fit.sig_b_weighted(mus, Es, sigmas)
+			# Read CSV file(s)
+			df = pd.read_csv(data, index_col=False)
 
-	## Calculating R-squared
-	# Model predicted energies
-	model_Es = m*mus + b
+			# Selecting data needed for calibration 
+			mus = np.concatenate((mus, df['mu']))
+			Es = np.concatenate((Es, df['E']))
+			sigmas = np.concatenate((sigmas, df['muRErr']))
+		
+		## Get calibration curve using functions from llsfit.py 
+		m = fit.m_weighted(mus, Es, sigmas)
+		b = fit.b_weighted(mus, Es, sigmas)
+		m_err = fit.sig_m_weighted(mus, Es, sigmas)
+		b_err = fit.sig_b_weighted(mus, Es, sigmas)
 
-	# R-squared it then;
-	R_sq = 	1 - (np.sum((Es - model_Es)**2)/np.sum((Es - np.mean(Es))**2))
+		## Calculating R-squared
+		# Model predicted energies
+		model_Es = m*mus + b
 
-	print(f'R-squared = {R_sq:.4f}')
+		# R-squared it then;
+		R_sq = 	1 - (np.sum((Es - model_Es)**2)/np.sum((Es - np.mean(Es))**2))
 
-	## Creating dictionary to store calibration curve values
-	calibration = {
-		'm': np.array([m]),
-		'b': np.array([b]),
-		'mErr': np.array([m_err]),
-		'bErr': np.array([b_err]),
-		'r-squared': np.array([R_sq])
-	}
+		print(f'R-squared = {R_sq:.4f}')
 
-	# Converting dictionary to pandas dataframe
-	df = pd.DataFrame.from_dict(calibration)
+		## Creating dictionary to store points used to create calibration curve
+		combined = {
+			'mus': mus,
+			'Es': Es,
+			'sigmas': sigmas
+		}
 
-	## Saving calibration curve to CSV file
-	name = input("\nInput name of calibration curve: ")
+		## Creating dictionary to store calibration curve values
+		calibration = {
+			'm': np.array([m]),
+			'b': np.array([b]),
+			'mErr': np.array([m_err]),
+			'bErr': np.array([b_err]),
+			'r-squared': np.array([R_sq])
+		}
 
-	print("\nSaving calibration curve to CSV file...")
-	files.create_csv('curve', df, name)
-	print("\nSaving loaded files calibration points as a CSV file...")
-	#files.create_csv()
+		## Converting dictionary to pandas dataframe
+		df_calibration = pd.DataFrame.from_dict(calibration)
+		df_combined = pd.DataFrame.from_dict(combined)
 
-	print("\nSaving complete....")
-	print("\nDisplaying calibration curve...")
+		## Get folder path to save output CSV file using get_folder_path function from files.py
+		folder_path = files.get_folder_path()
 
-	## Plot calibration curve
-	plt.clf()
+		## Name calibration curve file	
+		csv_name = input("\nInput name of calibration curve: ")
+		combined_csv_name = csv_name + '_points'
 
-	plt.scatter(mus, Es, label='datapoints', color='k', zorder=2)
+		## Save CSV file of calibration results using create_csv function from files.py
+		print("\nSaving calibration curve to CSV file...")
+		files.create_csv(df_calibration, csv_name, folder_path)
 
-	# Points to dislpay fit
-	x_fit = np.linspace(0, 1024, num=int(1e3))
-	E_fit = m * x_fit + b
+		## Save CSV file of data used to calibrate
+		print("\nSaving loaded files calibration points as a CSV file...")
+		files.create_csv(df_combined, combined_csv_name, folder_path)
 
-	# Plot
-	plt.plot(x_fit, E_fit, label=f'fit (y = {m:.5f}x + {b:.5f})', color='b', zorder=1)
+		print("\nSaving complete.")
+		
+		print("Displaying calibration curve...")
 
-	# Plot properties
-	plt.xlabel('MCA channel')
-	plt.ylabel('Energy (keV)')
-	plt.xlim(0, 1023)
-	plt.legend()
+		## Plot calibration curve
+		plt.clf()
 
-	## Save figure
-	#plt.savefig(f'../calibration_plots/{name}.png', dpi=300)
+		# Plot datapoints as scatter plot
+		plt.scatter(mus, Es, label='datapoints', color='k', zorder=2)
 
-	## Display plot
-	plt.show()
+		# Points to display calibration curve fit
+		x_fit = np.linspace(0, 1024, num=int(1e3))
+		E_fit = m * x_fit + b
 
-	print(f"Calibration curve saved as {name}_plot.png.")
+		# Plot
+		plt.plot(x_fit, E_fit, label=f'fit (y = {m:.5f}x + {b:.5f})', color='b', zorder=1)
+
+		# Plot properties
+		plt.xlabel('MCA channel')
+		plt.ylabel('Energy (keV)')
+		plt.xlim(0, 1023)
+		plt.legend()
+
+		# Display plot
+		plt.show()
+
+		## Save figure using create_image function in files.py
+		files.create_image(csv_name, folder_path)
+
+		print(f"Calibration curve saved as {csv_name}_plot.png.")
+		print("\nCalibration Complete.\n")
+
+	## If there is an error raised, the program will stop iterating through the list of files
+	## and the user will have to start over.
+	except Exception as e:
+		print(f"Error Message: {e}")
 
 	return

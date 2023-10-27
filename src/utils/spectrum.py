@@ -88,9 +88,11 @@ def read_spectra(filenames):
 				data = df.iloc[-1].to_numpy()
 
 				print("Done reading spectrum from", filename.name)
-				print(type(data))
-				## Return data as array
+				
+				## Create a class instance of the data and file(s)
 				data_processed = classes.DataProcessor(filename.stem, data)
+
+				## Return data as array and append to spectral_data
 				append_data = spectral_data.append(data_processed)
 		
 		elif ext == ".txt":
@@ -112,8 +114,10 @@ def read_spectra(filenames):
 				# Convert to array
 				data = np.asarray(data).astype(int)
 			
-				# Append to spectral_data
+				# Create a class instance of the data and file(s)
 				data_processed = classes.DataProcessor(filename.stem, data)
+
+				# Append to spectral_data
 				spectral_data.append(data_processed)
 
 				print("Done reading spectrum from", filename.name)
