@@ -1,4 +1,6 @@
 import pathlib
+import os
+import re
 
 def load_folder():
 	"""
@@ -42,15 +44,42 @@ def load_files():
 		user_input = input("Enter file path (blank to quit): ")
 	return filenames
 
-def create_csv():
+def create_csv(data, name, folder_path):
 	"""
 	Creates a CSV file with the outputs from the Gaussian fit.
 
 	"""
-	print('look MA YOU MADE IT')
+	print('Creating CSV file...')
+	
+	## Check if name is valid
+	if re.search(r'[\\/:*?"<>|]', name):
+		print("Invalid file name. Please enter a valid name.")
+
+	## Save data to CSV file
+	file_path = folder_path + f"\{name}.csv"
+
+	data.to_csv(file_path, index=False, encoding='utf-8')
+		
+
+def get_folder_path():
+	user_input = input("Where would you like to save the file?: ")
+
+	return user_input
+
 
 def create_image():
 	"""
 	Creates a PNG file with the outputs from the Gaussian fit.
 
 	"""
+
+def find_file_path(name, path):
+	"""
+	file path and returns the path as a string.
+
+	Returns:
+	- A string representing the file path.
+	"""
+	for root, dirs, files in os.walk(path):
+		if name in files:
+			return os.path.join(root, name)

@@ -16,7 +16,7 @@ def gaussian(x, A, sigma, mu):
 	Returns:
 		float: The value of the Gaussian function at the given point x.
 	"""
-	return A * np.exp(-(x - mu)**2 / (2 * sigma**2))
+	return (A * np.exp(-(1/2) * (((x - mu) / sigma)**2))) / (sigma * np.sqrt(2 * np.pi))
 
 ### Defining a Gaussian distribution for two peaks
 def double_gaussian(x, A1, sigma1, mu1, A2, sigma2, mu2):
@@ -92,10 +92,10 @@ def integrate_gaussian(x, y, params_gauss, sigmas=3):
 	startX = params_gauss[2] - sigmas*params_gauss[1]
 
 	# Find ending x-value (μ + sigmas*σ)
-	endX = params_gauss[2] - sigmas*params_gauss[1]
+	endX = params_gauss[2] + sigmas*params_gauss[1]
 
 	# Get mask corresponding to this range of x-values
-	mask = (x >= startX) & (x <= endX)
+	mask = (x > startX)*(x < endX)
 
 	# Slice y-values within this range
 	y_slice = y[mask]

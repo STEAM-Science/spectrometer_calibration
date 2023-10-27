@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 import utils.files as files
+import utils.classes as classes
 
 def process_spectrum():
 	"""
@@ -66,7 +67,7 @@ def read_spectra(filenames):
 
 	## Obtaining data from loaded files	
 	for filename in filenames:
-		print("Reading spectrum from", filename)
+		print("Reading spectrum from", filename.name)
 
 		## Check if file exists
 		if not os.path.isfile(filename):
@@ -86,11 +87,12 @@ def read_spectra(filenames):
 				# Get data (last row of .csv file) and convert to array
 				data = df.iloc[-1].to_numpy()
 
-				print("Done reading spectrum from", filename)
+				print("Done reading spectrum from", filename.name)
 				print(type(data))
 				## Return data as array
-				append_data = spectral_data.append(data)
-
+				data_processed = classes.DataProcessor(filename.stem, data)
+				append_data = spectral_data.append(data_processed)
+		
 		elif ext == ".txt":
 			with open(filename) as file:
 
@@ -111,9 +113,10 @@ def read_spectra(filenames):
 				data = np.asarray(data).astype(int)
 			
 				# Append to spectral_data
-				spectral_data.append(data)
+				data_processed = classes.DataProcessor(filename.stem, data)
+				spectral_data.append(data_processed)
 
-				print("Done reading spectrum from", filename)
+				print("Done reading spectrum from", filename.name)
 		
 		else:
 			raise ValueError("File format not supported! Please load a .csv or .txt file.")

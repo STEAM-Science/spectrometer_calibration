@@ -48,7 +48,6 @@ def main():
 		Step 6. Repeat steps 3-5 for each region of interest
 		Step 7. Save the Gaussian fit parameters to a csv file using the function files.create_csv()
 		"""
-		#filenames = spectrum.process_spectrum()
 		calibrate.calibration_points()
 
 	if args.display:
