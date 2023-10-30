@@ -25,6 +25,22 @@ import utils.files as files
 import utils.gaussian_fit as gauss
 import utils.plot as plot
 import utils.llsfit as fit
+import utils.classes as classes
+
+def get_isotopes():
+	print("For the following prompt, please put each isotope used one at a time. Only include the mass number (ex: 133 for Cs-133) if necessary. Enter the same format style as your data (ex: Cs-133, Cs_133, or Cs133)")
+
+	user_isotopes = []
+
+	user_input = input("Input isotopes to fit (leave blank to quit): ")
+
+	while user_input != "":
+		user_isotopes.append(user_input)
+		user_input = input("Input isotopes to fit (leave blank to quit): ")
+	
+	print("You entered the following isotopes:", ', '.join(user_isotopes))
+	
+	return user_isotopes
 
 def getNumericalInput(text):
 	"""
@@ -344,114 +360,87 @@ def calibration_points():
 
 def create_calibration_curve():
 	"""
+	Step 1: Get calibration points from each file and put data into the IsotopeCalibrationData class
+	Step 2: Combine data from all files
+	Step 3: Perform weighted fit using the combined data to get m and b
+	Step 4: Plot fit using m and b 
+	Step 5: Plot the combined data using x=E, y=mu and create a legend for each isotope
+	Step 6: Save combine data as csv
+	Step 7: Save fit data as csv
+	Step 8: Display and save plot as png.
 	Creates a calibration curve from a set of input files containing calibration points.
 
 	The function prompts the user to input the file paths for each set of calibration points.
 	It then calculates the calibration curve and saves the results to a CSV file.
 	Additionally, it saves a plot of the calibration curve and displays it to the user.
 	"""
-
-	print("Beginning calibration curve analysis...")
+	# Step 1: Get calibration points from each file
+	
+	# Getting which isotopes were used in the calibration from user
+	isotopes = get_isotopes()
 
 	user_input = input("Do you want to process a folder (f) or individual files (i)?: ")
 	
 	# Removing case sensitivity of user input
 	user_input_case = user_input.lower()
 	
-	# Get list of files from user using functions from file.py
 	if user_input_case == "f":
-		calibration_points = files.load_folder()
+		calibration_points_files = files.load_folder()
 	elif user_input_case == "i":
-		calibration_points = files.load_files()
+		calibration_points_files = files.load_files()
 	else: 
 		raise ValueError("Invalid input")
 	
-	print(len(calibration_points), "files loaded\n")
-
-	## Iterating through all files in the list may raise an error or exception. To ensure the user does not have
-	## to start over, the program will continue to iterate through the list even if an error is raised.
+	# Step 2: Combine data from all files
 	try:
+		combined_data = classes.CombinedIsotopeCalibrationData()
 
-		## Creating arrays to store calibration points
-		mus = np.array([])
-		Es = np.array([])
-		sigmas = np.array([])
+		for file in calibration_points_files:
+			for isotope in isotopes:
+				if isotope in file.stem:
 
-		## Getting calibration points from each file
-		for data in calibration_points:
+					# Reads csv file as a pandas dataframe
+					df = pd.read_csv(file)
 
-			# Read CSV file(s)
-			df = pd.read_csv(data, index_col=False)
+					# Unpacking data
+					mu = df['mu']
+					E = df['E']
+					sigma = df['sigma']
+					int_counts = df['intCounts']
+					#max_counts = df['max_counts']
+					
+					# Combines arrays from all files and stores into class
+					combined_data.add_mus(isotope, mu)
+					combined_data.add_Es(isotope, E)
+					combined_data.add_sigmas(isotope, sigma)
+					combined_data.add_int_counts(isotope, int_counts)
+					#combined_data.add_max_counts(isotope, max_counts)
 
-			# Selecting data needed for calibration 
-			mus = np.concatenate((mus, df['mu']))
-			Es = np.concatenate((Es, df['E']))
-			sigmas = np.concatenate((sigmas, df['muRErr']))
-			int_counts = np.concatenate((int_counts, df['intCounts']))
-			max_counts = np.concatenate((max_counts, df['max_counts']))
-			## TODO change intcounts
+		# Step 3: Perform weighted fit using the combined data to get m and b
+		mu_values = [x[1] for x in combined_data.mu]
+		E_values = [x[1] for x in combined_data.E]
+		sigma_values = [x[1] for x in combined_data.sigma]
 
-		## Get calibration curve using functions from llsfit.py 
-		m = fit.m_weighted(mus, Es, sigmas)
-		b = fit.b_weighted(mus, Es, sigmas)
-		m_err = fit.sig_m_weighted(mus, Es, sigmas)
-		b_err = fit.sig_b_weighted(mus, Es, sigmas)
+		mu_array = np.concatenate(np.array(mu_values, dtype=object))
+		E_array = np.concatenate(np.array(E_values, dtype=object))
+		sigma_array = np.concatenate(np.array(sigma_values, dtype=object))
 
+		m = fit.m_weighted(mu_array, E_array, sigma_array)
+		b = fit.b_weighted(mu_array, E_array, sigma_array)
+		m_err = fit.sig_m_weighted(mu_array, E_array, sigma_array)
+		b_err = fit.sig_b_weighted(mu_array, E_array, sigma_array)
+			
 		## Calculating R-squared
 		# Model predicted energies
-		model_Es = m*mus + b
+		model_Es = m*mu_array + b
 
 		# R-squared it then;
-		R_sq = 	1 - (np.sum((Es - model_Es)**2)/np.sum((Es - np.mean(Es))**2))
+		R_sq = 	1 - (np.sum((E_array - model_Es)**2)/np.sum((E_array - np.mean(E_array))**2))
 
 		print(f'R-squared = {R_sq:.4f}')
 
-		## Creating dictionary to store points used to create calibration curve
-		combined = {
-			'mu': mus,
-			'E': Es,
-			'sigma': sigmas,
-			'int_counts': int_counts,
-			'max_counts': max_counts
-		}
-
-		## Creating dictionary to store calibration curve values
-		calibration = {
-			'm': np.array([m]),
-			'b': np.array([b]),
-			'mErr': np.array([m_err]),
-			'bErr': np.array([b_err]),
-			'r-squared': np.array([R_sq])
-		}
-
-		## Converting dictionary to pandas dataframe
-		df_calibration = pd.DataFrame.from_dict(calibration)
-		df_combined = pd.DataFrame.from_dict(combined)
-
-		## Get folder path to save output CSV file using get_folder_path function from files.py
-		folder_path = files.get_folder_path()
-
-		## Name calibration curve file	
-		csv_name = input("\nInput name of calibration curve: ")
-		combined_csv_name = csv_name + '_points'
-
-		## Save CSV file of calibration results using create_csv function from files.py
-		print("\nSaving calibration curve to CSV file...")
-		files.create_csv(df_calibration, csv_name, folder_path)
-
-		## Save CSV file of data used to calibrate
-		print("\nSaving loaded files calibration points as a CSV file...")
-		files.create_csv(df_combined, combined_csv_name, folder_path)
-
-		print("\nSaving complete.")
-		
-		print("\nDisplaying calibration curve...")
-
-		## Plot calibration curve
+		# Step 4: Plot fit using m and b
 		plt.clf()
-
-		# Plot datapoints as scatter plot
-		plt.scatter(mus, Es, label='datapoints', color='k', zorder=2)
 
 		# Points to display calibration curve fit
 		x_fit = np.linspace(0, 1024, num=int(1e3))
@@ -460,46 +449,27 @@ def create_calibration_curve():
 		# Plot
 		plt.plot(x_fit, E_fit, label=f'fit (y = {m:.5f}x + {b:.5f})', color='b', zorder=1)
 
-		# Plot properties
+		# Step 5: Plot the combined data using x=E, y=mu and create a legend for each isotope
+		# Plot the combined data using x=E, y=mu and create a legend for each isotope
+		
+		for isotope in combined_data.isotopes:
+			mask = combined_data.isotope_mask(isotope)
+			plt.scatter(combined_data.E[mask], combined_data.mu[mask], label=isotope, zorder=2)
+
+		# Set plot properties
 		plt.xlabel('MCA channel')
 		plt.ylabel('Energy (keV)')
 		plt.xlim(0, 1023)
 		plt.legend()
+		# [[Isotope1, Data1], [Isotope1, Data2]....[Isotope2, Data1]...]
+		# [['Isotope1', Data1, Data2, Data3...], ['Isotope2', Data1, Data2, Data3...]]
+		# check Isotope make sure Data1, Data2, etc, get the same label
 
-		# Display plot
+		# Show the plot
 		plt.show()
 
-		## Save figure using create_image function in files.py
-		files.create_image(csv_name, folder_path)
-
-		print("\nCalibration Complete.\n")
-
-	## If there is an error raised, the program will stop iterating through the list of files
-	## and the user will have to start over.
 	except Exception as e:
-		print(f"\nError Message: {e}")
-
-	## Asking user if they wish to proceed to the next calibration step
-	advance = input("Would you like to continue to the resolution (r) or response (rp) analysis? Leave blank to exit: ")
-
-	# Removing case sensitivity of user input
-	advance_case = advance.lower()
-
-	# If user wishes to continue to the next step, call the next function (determine_resolution or determine_response)
-	while advance_case != "":
-
-		# Go to resolution analysis
-		if advance_case == "r":
-			return determine_resolution(advance_case, df_combined)
-		
-		# Go to response analysis
-		elif advance_case == "rp":
-			determine_response(advance_case, df_combined)
-
-		else:
-			raise ValueError("Invalid input")
-	
-	return df_combined
+		raise e 
 
 def determine_response(advance=None, calibration_points=None):
 
@@ -508,7 +478,7 @@ def determine_response(advance=None, calibration_points=None):
 	if advance == None:
 
 		# Getting user input for calibration curve file path
-		print("Please only upload one file containing calibration curve points")
+		print("Only upload one file containing calibration curve points")
 		user_input = input("Calibration curve points file path: ")
 		user_input = user_input.replace('"', '')
 
@@ -596,7 +566,32 @@ def determine_resolution(advance=None, calibration_points=None):
 
 
 def calibrate_spectrum():
-	return
+	'''
+	Get spectral data and calibration data
+	
+	'''
+
+	## Load calibration curve using functions from files.py
+	user_input_calibration = input("Enter path to calibration curve file: ")
+
+	calibration_curve = pd.read_csv(user_input_calibration)
 
 
+	## Load selected file(s) to calibrate using functions from spectrum.py
+	spectral_data = spectrum.process_spectrum()
 
+	num_items_to_process = len(spectral_data)
+
+	## Iterator
+	total_items_processed = 0
+
+	## Get folder path from user (where results will be saved)
+	folder_path = files.get_folder_path()
+
+	for data in spectral_data:
+		try:
+			pass
+		except Exception as e:
+			raise e
+		finally:
+			pass

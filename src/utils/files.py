@@ -45,7 +45,7 @@ def load_folder():
 			# Add all files in the folder to the list of filenames
 			for file in folder.iterdir():
 				filenames.append(file)
-				print("Added", file, "to list of files")
+				print("Added", file.stem, "to list of files")
 		else:
 
 			raise ValueError("Folder path is not a directory")
