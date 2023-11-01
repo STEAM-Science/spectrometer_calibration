@@ -106,7 +106,7 @@ def find_file_path(name, path):
 ### Creates a csv with inputted data and saves it to the specified location
 def create_csv(data, name, folder_path):
 	
-	print('Creating CSV file...')
+	print('\nCreating CSV file...')
 
 	## Replacing double quotes with nothing from user input
 	## When copying from Windows Explorer, the path sometimes copied with double quotes, which would create an 
@@ -128,13 +128,13 @@ def create_csv(data, name, folder_path):
 
 	data.to_csv(file_path, index=False, encoding='utf-8')
 
-	print(f"\nSaved as {name} to {folder_path}.")
+	print(f"Saved as {name} to {folder_path}.")
 
 
 ### Creates an image with inputted data and saves it to the specified location
 def create_image(name, folder_path):
 
-	print('Saving image...')
+	print('\nSaving image...')
 
 	## Replacing double quotes with nothing from user input
 	## When copying from Windows Explorer, the path sometimes copied with double quotes, which would create an 

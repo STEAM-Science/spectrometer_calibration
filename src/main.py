@@ -19,13 +19,13 @@ def main():
 	"""
 	parser = argparse.ArgumentParser(description="Process and display spectra.")
 
-	parser.add_argument("-c", "--calibrate",
+	parser.add_argument("-cc", "--calibration",
 						help="creates a calibration curve from multiple points",
 						action="store_true")
 	parser.add_argument("-cp", "--cpoints", 
 						help= "reads spectrum data and performs a Gaussian fit over a selected region **Multiple files must be from the same element.", 
 						action="store_true")
-	parser.add_argument("-d", "--display", 
+	parser.add_argument("-c", "--calibrate", 
 						help="calibrate and display a spectrum", 
 						action="store_true")
 	parser.add_argument("-r", "--resolution", 

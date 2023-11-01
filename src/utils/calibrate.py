@@ -360,22 +360,18 @@ def calibration_points():
 
 def create_calibration_curve():
 	"""
+	Creates a calibration curve from a set of input files containing calibration points.
+
 	Step 1: Get calibration points from each file and put data into the IsotopeCalibrationData class
 	Step 2: Combine data from all files
 	Step 3: Perform weighted fit using the combined data to get m and b
-	Step 4: Plot fit using m and b 
-	Step 5: Plot the combined data using x=E, y=mu and create a legend for each isotope
-	Step 6: Save combine data as csv
-	Step 7: Save fit data as csv
-	Step 8: Display and save plot as png.
-	Creates a calibration curve from a set of input files containing calibration points.
-
-	The function prompts the user to input the file paths for each set of calibration points.
-	It then calculates the calibration curve and saves the results to a CSV file.
-	Additionally, it saves a plot of the calibration curve and displays it to the user.
+	Step 4: Plot the combined data using x=E, y=mu and create a legend for each isotope
+	Step 5: Plot fit using m and b 
+	Step 6: Display and save plot as png.
+	Step 7: Save combine data and fit results as csv file
 	"""
-	# Step 1: Get calibration points from each file
-	
+
+	## Step 1: Get calibration points from each file
 	# Getting which isotopes were used in the calibration from user
 	isotopes = get_isotopes()
 
@@ -384,6 +380,7 @@ def create_calibration_curve():
 	# Removing case sensitivity of user input
 	user_input_case = user_input.lower()
 	
+	# Load files or folder(s) based on user input
 	if user_input_case == "f":
 		calibration_points_files = files.load_folder()
 	elif user_input_case == "i":
@@ -391,12 +388,20 @@ def create_calibration_curve():
 	else: 
 		raise ValueError("Invalid input")
 	
-	# Step 2: Combine data from all files
+	## Step 2: Combine data from all files
+
+	# Iterating through all the files in the list may raise an error or exception. 
+	# If so, the program will stop and raise the error.
 	try:
+
+		# Initiating the CombinedIsotopeCalibrationData class from classes.py
 		combined_data = classes.CombinedIsotopeCalibrationData()
 
+		# Iterating through all the files in the list
 		for file in calibration_points_files:
 			for isotope in isotopes:
+
+				# Checking if the isotope is in the file name
 				if isotope in file.stem:
 
 					# Reads csv file as a pandas dataframe
@@ -409,67 +414,156 @@ def create_calibration_curve():
 					int_counts = df['intCounts']
 					#max_counts = df['max_counts']
 					
-					# Combines arrays from all files and stores into class
+					# Combines arrays from all files and stores into class. For format information, see classes.py
 					combined_data.add_mus(isotope, mu)
 					combined_data.add_Es(isotope, E)
 					combined_data.add_sigmas(isotope, sigma)
 					combined_data.add_int_counts(isotope, int_counts)
 					#combined_data.add_max_counts(isotope, max_counts)
 
-		# Step 3: Perform weighted fit using the combined data to get m and b
+		## Step 3: Perform weighted fit using the combined data to get m and b
+
+		# Getting weighted fit parameters from class
 		mu_values = [x[1] for x in combined_data.mu]
 		E_values = [x[1] for x in combined_data.E]
 		sigma_values = [x[1] for x in combined_data.sigma]
 
+		# Converting lists to arrays
 		mu_array = np.concatenate(np.array(mu_values, dtype=object))
 		E_array = np.concatenate(np.array(E_values, dtype=object))
 		sigma_array = np.concatenate(np.array(sigma_values, dtype=object))
 
+		# Performing weighted fit using functions from llsfit.py
 		m = fit.m_weighted(mu_array, E_array, sigma_array)
 		b = fit.b_weighted(mu_array, E_array, sigma_array)
 		m_err = fit.sig_m_weighted(mu_array, E_array, sigma_array)
 		b_err = fit.sig_b_weighted(mu_array, E_array, sigma_array)
 			
-		## Calculating R-squared
 		# Model predicted energies
 		model_Es = m*mu_array + b
 
-		# R-squared it then;
+		# Calculating R-squared
 		R_sq = 	1 - (np.sum((E_array - model_Es)**2)/np.sum((E_array - np.mean(E_array))**2))
 
+		# Printing results
 		print(f'R-squared = {R_sq:.4f}')
 
-		# Step 4: Plot fit using m and b
+		## From user, getting name of plot/files and folder path to save
+		name = input("Input name of calibration curve plot: ")
+		folder_path = files.get_folder_path()
+
+		
+		# Step 4: Plot the combined data using x=E, y=mu and create a legend for each isotope
+
 		plt.clf()
 
+		# Define markers and colors
+		#markers = ['o', 's', '^', 'v', '*']
+		#colors = ['yellow', 'tab:purple', 'r', 'b', 'g']
+
+		#isotope_styles = {isotope: {'marker': marker, 'color': color} 
+		 			#	for isotope, marker, color in zip(isotopes, markers, colors)}
+		
+		# Create a dictionary mapping isotopes to markers and colors
+		isotope_styles = {
+				'Am': {'marker': 'o', 'color': 'yellow'},
+				'Ba': {'marker': 's', 'color': 'tab:purple'},
+				'Fe': {'marker': 'v', 'color': 'r'},
+				'Zn': {'marker': '^', 'color': 'b'},
+				'Cd': {'marker': '*', 'color': 'g'}
+			}
+		
+		# Iterate through all isotopes
+		for isotope in isotopes:
+
+			# Iterate through all data in combined_data to separate mu and E data for each isotope
+			for y in combined_data.mu:
+				for x in combined_data.E:
+					if x[0] == isotope and y[0] == isotope:
+
+						# Unpacking data
+						isotope_E_data = x[1]
+						isotope_mu_data = y[1]
+
+						#plot.isotope_styles(isotope_mu_data, isotope_E_data, isotope)
+
+						# Get the marker and color for the current isotope
+						marker = isotope_styles[isotope]['marker']
+						color = isotope_styles[isotope]['color']
+
+						# Plot the data for the current isotope
+						plt.scatter(isotope_mu_data, isotope_E_data, label=isotope, zorder=2, marker=marker, color=color, edgecolors='k')
+
+		## Step 5: Plot fit using m and b
 		# Points to display calibration curve fit
 		x_fit = np.linspace(0, 1024, num=int(1e3))
 		E_fit = m * x_fit + b
 
-		# Plot
-		plt.plot(x_fit, E_fit, label=f'fit (y = {m:.5f}x + {b:.5f})', color='b', zorder=1)
+		# Plot fit
+		plt.plot(x_fit, E_fit, label=f'fit (y = {m:.5f}x + {b:.5f})', color='k', zorder=1)
 
-		# Step 5: Plot the combined data using x=E, y=mu and create a legend for each isotope
-		# Plot the combined data using x=E, y=mu and create a legend for each isotope
-		
-		for isotope in combined_data.isotopes:
-			mask = combined_data.isotope_mask(isotope)
-			plt.scatter(combined_data.E[mask], combined_data.mu[mask], label=isotope, zorder=2)
-
+		## Step 6: Display and save plot as png.
 		# Set plot properties
 		plt.xlabel('MCA channel')
 		plt.ylabel('Energy (keV)')
 		plt.xlim(0, 1023)
 		plt.legend()
-		# [[Isotope1, Data1], [Isotope1, Data2]....[Isotope2, Data1]...]
-		# [['Isotope1', Data1, Data2, Data3...], ['Isotope2', Data1, Data2, Data3...]]
-		# check Isotope make sure Data1, Data2, etc, get the same label
 
-		# Show the plot
+		# Save figure using create_image function in files.py
+		files.create_image(name, folder_path)
+
+		# Display the plot
 		plt.show()
 
+		## Step 7: Save combined data and fit results as csv
+		# Creating dictionary to store combined data, without isotope information
+		combined_dict = {
+			'mu': mu_array,
+			'E': E_array,
+			'sigma': sigma_array
+			#'int_counts': int_counts_array,
+			#max_counts = max_counts_array
+		}
+
+		# Creating dictionary to store fit results
+		calibration_dict = {
+			'm': np.array([m]),
+			'b': np.array([b]),
+			'm_err': np.array([m_err]),
+			'b_err': np.array([b_err]),
+			'R_sq': np.array([R_sq])
+		}
+		
+		# Create pandas dataframe from dictionary
+		combined_df = pd.DataFrame.from_dict(combined_dict)
+		calibration_df = pd.DataFrame.from_dict(calibration_dict, orient='index', columns=['value'])
+		
+		# Save dataframe to CSV file using create_csv function in files.py
+		csv_combined = files.create_csv(combined_df, name +'_points', folder_path)
+		csv_calibration = files.create_csv(calibration_df, name, folder_path)
+
+		### End of function
+		print("\nCalibration complete.")
+
+		### Asking user if they wish to proceed to the next calibration step
+		advance = input("Would you like to continue to the resolution (r) or response (rp) analysis? Leave blank to exit: ")
+
+		# Removing case sensitivity of user input
+		advance_case = advance.lower()
+
+		## If user wishes to continue to the next step, call the next function (determine_resolution)
+		while advance_case != "":
+
+			# Go to determine_resolution
+			if advance_case == "r":
+				return #determine_resolution(advance_case, calibration_points)
+			elif advance_case == "rp":
+				return determine_response(advance_case, calibration_df)
+			else:
+				raise ValueError("Invalid input")
+		
 	except Exception as e:
-		raise e 
+		print(f'Error Message: {e}') 
 
 def determine_response(advance=None, calibration_points=None):
 
@@ -497,8 +591,9 @@ def determine_response(advance=None, calibration_points=None):
 	E = calibration_points['E']
 
 	print(np.exp(-E))
+
 	## Creating a dictionary to store detector response data
-	df = {
+	response_dict = {
 		'E (keV)': E,
 		'FWHM (keV)': fwhm
 	}
@@ -515,17 +610,20 @@ def determine_response(advance=None, calibration_points=None):
 	plt.xlabel('Energy (keV)')
 	plt.ylabel('FWHM (keV)')
 
+	# Save figure using create_image function in files.py
+	files.create_image(name, folder_path)
+
 	# Display plot
 	print("\nDisplaying detector response...")
 	plt.show()
 
-	# Save figure using create_image function in files.py
-	files.create_image(name, folder_path)
+
 
 	## Save detector response data to CSV file using create_csv function in files.py
 	files.create_csv(data, name, folder_path)
 	
 	print("\nComplete.")
+
 
 	## Asking user if they wish to proceed to the next calibration step
 	advance = input("Would you like to continue to the resolution (r) analysis? Leave blank to exit: ")
@@ -542,6 +640,7 @@ def determine_response(advance=None, calibration_points=None):
 		else:
 			raise ValueError("Invalid input")
 	return
+
 
 def determine_resolution(advance=None, calibration_points=None):
 	

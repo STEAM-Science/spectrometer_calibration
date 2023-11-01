@@ -226,3 +226,33 @@ def nist_data(coords, units='keV'):
 		print(f"{i+1:5} | {coords[i][0]:12} | {coords[i][1]}")
     
 	print("--------------------------------------")
+
+def isotope_styles(x, y, input_isotope):
+	# Clear existing plots
+	plt.clf()
+
+	isotopes = ['Am', 'Ba', 'Fe', 'Zn', 'Cd']
+
+	if input_isotope in isotopes:
+		isotope_styles = {
+			'Am': {'marker': 'o', 'color': 'yellow'},
+			'Ba': {'marker': 's', 'color': 'tab:purple'},
+			'Fe': {'marker': 'v', 'color': 'r'},
+			'Zn': {'marker': '^', 'color': 'b'},
+			'Cd': {'marker': '*', 'color': 'g'}
+		}
+	
+		marker = isotope_styles[input_isotope]['marker']
+		color = isotope_styles[input_isotope]['color']
+
+
+	else:
+		# Define markers and colors
+		markers = ['o', 's', '^', 'v', '*']
+		colors = ['yellow', 'tab:purple', 'r', 'b', 'g']
+
+		# Create a dictionary mapping isotopes to markers and colors
+		isotope_styles = {input_isotope: {'marker': marker, 'color': color} 
+					for input_isotope, marker, color in zip(input_isotope, markers, colors)}
+	
+	plt.scatter(x, y, label=input_isotope, zorder=2, marker=marker, color=color, edgecolors='k')
