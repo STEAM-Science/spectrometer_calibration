@@ -19,7 +19,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
-## Importing functions from other python files
+### Importing functions from other python files in the project
 import utils.spectrum as spectrum
 import utils.files as files
 import utils.gaussian_fit as gauss
@@ -27,7 +27,14 @@ import utils.plot as plot
 import utils.llsfit as fit
 import utils.classes as classes
 
+## General functions
 def get_isotopes():
+	"""
+	Prompts the user to input isotopes to fit and returns a list of the entered isotopes
+	
+	Returns:
+		user_isotopes (list): A list of the entered isotopes.
+	"""
 	print("For the following prompt, please put each isotope used one at a time. Only include the mass number (ex: 133 for Cs-133) if necessary. Enter the same format style as your data (ex: Cs-133, Cs_133, or Cs133)")
 
 	user_isotopes = []
@@ -72,25 +79,39 @@ def getNumericalInput(text):
 	## Return input as float
 	return float(num)
 
+### Calibration functions
+
 def calibration_points():
 	"""
-	Prompt the user to select regions of interest in a spectrum and fit Gaussian curves to them.
-	The results from the Gaussian fit are saved as a CSV file in the 'cPoints' directory.
+	Select regions of interest in a spectrum and fit Gaussian curves to them.
+	The results from the Gaussian fit are saved as a CSV file.
+
+	Step 1. Choose a folders or files containing calibration points 
+	Step 2. Read the spectrum data from the file(s) 
+	Step 3. Plot the spectrum data and select region of interest 
+	Step 4. Perform a Gaussian fit over the selected region 
+	Step 5. Save the Gaussian fit parameters to an array
+	Step 6. Repeat steps 3-5 for each region of interest
+	Step 7. Save the Gaussian fit parameters to a csv file
 	"""
 
+	## Step 1. Choose a folders or files containing calibration points using the function spectrum.process_spectrum()
 
-	## Load selected file(s) using functions from spectrum.py
+	# Load selected file(s) using functions from spectrum.py
 	spectral_data = spectrum.process_spectrum()
 
+	# Number of files to process
 	num_items_to_process = len(spectral_data)
 
-	## Iterator
+	# Iterator to track progress
 	total_items_processed = 0
 
-	## Get folder path from user (where results will be saved)
+	# Get folder path from user (where results will be saved)
 	folder_path = files.get_folder_path()
 
-	## For every spectrum in the list
+	## Step 2. Read the spectrum data from the file(s) 
+	
+	# For every spectrum in the list
 	for data_processed in spectral_data:
 		
 		# Iterating through all files in the list may raise an error or exception. To ensure the user does not have
@@ -127,7 +148,8 @@ def calibration_points():
 			# Recompose into matrix of coordinates
 			nist_coords = np.array([nist_x, nist_y]).T
 
-			## Display spectrum (uncalibrated)
+			## Step 3. Plot the spectrum data and select region of interest
+			# Display spectrum (uncalibrated)
 			print("\nDisplaying uncalibrated spectrum. Select how many peaks to fit")
 
 			# Plot parameters
@@ -167,6 +189,8 @@ def calibration_points():
 
 			# Iterator
 			nPeak = 1
+
+			## Step 4. Perform a Gaussian fit over the selected region 
 
 			# For every peak in the range
 			while nPeak < num_peaks+1:
@@ -212,6 +236,8 @@ def calibration_points():
 
 					# Get energy of peak
 					peak_energy = nist_coords[peak_index-1, 0]
+
+					## Step 5. Save the Gaussian fit parameters to an array (for single Gaussian)
 
 					# Add pair of calibration point to array with uncertainties
 					points.append(np.array([mean, mean_err, peak_energy, sigma, sigma_err, A, A_err, int_counts, max_counts]))
@@ -297,6 +323,8 @@ def calibration_points():
 					peak_energy_1 = nist_coords[peak_1-1, 0]
 					peak_energy_2 = nist_coords[peak_2-1, 0]
 
+					## 	Step 5. Save the Gaussian fit parameters to an array (for double Gaussian)
+
 					# Add pair of calibration point to array with uncertainties
 					points.append(np.array([mean_1, mean_err_1, peak_energy_1, sigma_1, sigma_err_1, A_1, A_err_1, int_counts_1, max_counts_1]))
 					points.append(np.array([mean_2, mean_err_2, peak_energy_2, sigma_2, sigma_err_2, A_2, A_err_2, int_counts_2, max_counts_2]))
@@ -304,10 +332,12 @@ def calibration_points():
 					# Iterate
 					nPeak += 2
 			
-			## Convert calibration points to array
+			## 	Step 7. Save the Gaussian fit parameters to a csv file
+
+			# Convert calibration points to array
 			points = np.asarray(points)
 
-			## Get list of 'x' and 'y' calibration points
+			# Get list of 'x' and 'y' calibration points
 			points = points.T
 
 			points_dict = {
@@ -325,13 +355,13 @@ def calibration_points():
 				'max_counts': points[8]
 			}
 
-			## Create pandas dataframe from dictionary
+			# Create pandas dataframe from dictionary
 			df = pd.DataFrame.from_dict(points_dict)
 
-			## Name of csv (Original filename + _points)
+			# Name of csv (Original filename + _points)
 			file_name = data_processed.filename + '_points'
 			
-			## Save dataframe to CSV file using create_csv function in files.py
+			# Save dataframe to CSV file using create_csv function in files.py
 			files.create_csv(df, file_name, folder_path)
 
 			print("Calibration points saved to CSV file.")
@@ -566,14 +596,28 @@ def create_calibration_curve():
 		print(f'Error Message: {e}') 
 
 def determine_response(advance=None, calibration_points=None):
+	"""
+	Determines the detector response by analyzing the Full Width Half Max (FWHM) and Energy (E) of the calibration points.
+	Saves the detector response data to a CSV file and displays a plot of FWHM vs E.
 
-	## Either continuning from previous function or starting from scratch
-	# Start from scratch, uploading new file
+	Step 1. Load a file(s) containing Gaussian fit parameters
+	Step 2. Select sigmas from data 
+	Step 3. Plot sigmas vs energy
+	Step 4. Save the plot to an image file
+	Step 5. Save the resolution to a csv file
+	"""
+
+	## Step 1. Load a file(s) containing Gaussian fit parameters
+
+	# Either continuning from previous function or starting from scratch
+	# If starting from scratch, uploading new file
 	if advance == None:
 
 		# Getting user input for calibration curve file path
 		print("Only upload one file containing calibration curve points")
 		user_input = input("Calibration curve points file path: ")
+
+		# Removing quotes from user input
 		user_input = user_input.replace('"', '')
 
 		# Obtain data
@@ -586,11 +630,10 @@ def determine_response(advance=None, calibration_points=None):
 
 	print("Beginning detector response analysis...\n")
 	
-	## Calculating Full Width Half Max (FWHM)
+	## Step 2. Select sigmas from data and determine response Full Width Half Max (FWHM)
+	# Calculating Full Width Half Max (FWHM)
 	fwhm = calibration_points['sigma'] * 2.355
 	E = calibration_points['E']
-
-	print(np.exp(-E))
 
 	## Creating a dictionary to store detector response data
 	response_dict = {
@@ -598,7 +641,8 @@ def determine_response(advance=None, calibration_points=None):
 		'FWHM (keV)': fwhm
 	}
 
-	## Plotting detector response: FWHM vs E
+	## Step 3. Plot sigmas vs energy
+	# Plotting detector response: FWHM vs E
 	plt.scatter(E, fwhm)
 	
 	# Getting user_input for name of plot and folder path
@@ -610,6 +654,7 @@ def determine_response(advance=None, calibration_points=None):
 	plt.xlabel('Energy (keV)')
 	plt.ylabel('FWHM (keV)')
 
+	## Step 4. Save the plot to an image file
 	# Save figure using create_image function in files.py
 	files.create_image(name, folder_path)
 
@@ -617,15 +662,14 @@ def determine_response(advance=None, calibration_points=None):
 	print("\nDisplaying detector response...")
 	plt.show()
 
-
-
-	## Save detector response data to CSV file using create_csv function in files.py
+	## Step 5. Save the resolution to a csv file
+	# Save detector response data to CSV file using create_csv function in files.py
 	files.create_csv(data, name, folder_path)
 	
 	print("\nComplete.")
 
 
-	## Asking user if they wish to proceed to the next calibration step
+	### Asking user if they wish to proceed to the next calibration step
 	advance = input("Would you like to continue to the resolution (r) analysis? Leave blank to exit: ")
 
 	# Removing case sensitivity of user input
@@ -666,31 +710,133 @@ def determine_resolution(advance=None, calibration_points=None):
 
 def calibrate_spectrum():
 	'''
-	Get spectral data and calibration data
+	Calibrates spectral data using a calibration curve and saves the calibrated data as a CSV file and image.
 	
+	Step 1. Upload a spectrum file and calibration curve file
+	Step 2. Calibrate the spectrum using m and b from the calibration curve
+	Step 3. Display the calibrated spectrum
+	Step 4. Save the calibrated spectrum as a CSV file and image
 	'''
 
-	## Load calibration curve using functions from files.py
-	user_input_calibration = input("Enter path to calibration curve file: ")
+	## Step 1. Upload a spectrum file and calibration curve file
+
+	# Load calibration curve using functions from files.py
+	user_input_calibration = input("\nEnter path to calibration curve file: ")
 
 	calibration_curve = pd.read_csv(user_input_calibration)
+	m = calibration_curve['m'][0]
+	b = calibration_curve['b'][0]
 
 
-	## Load selected file(s) to calibrate using functions from spectrum.py
+	# Load selected file(s) to calibrate using functions from spectrum.py
+	print("\nSelect which spectra to calibrate...")
 	spectral_data = spectrum.process_spectrum()
 
+	# Number of files to process
 	num_items_to_process = len(spectral_data)
 
-	## Iterator
+	# Iterator o keep track of progress
 	total_items_processed = 0
 
-	## Get folder path from user (where results will be saved)
+	# Get folder path from user (where results will be saved)
 	folder_path = files.get_folder_path()
 
-	for data in spectral_data:
+
+	## Step 2. Calibrate the spectrum
+
+	# For every spectrum in the list
+	for data_processed in spectral_data:
+
+		# Iterating through all files in the list may raise an error or exception. To ensure the user does not have
+		# to start over, the program will continue to iterate through the list even if an error is raised.
 		try:
-			pass
+
+			# Obtain data file(s) from list (stored in a class)
+			data = data_processed.data
+
+			# Asks user which element is being calibrated
+			element = input("\nWhich element is being calibrated?: ")
+
+			# Obtain binning
+			binning = np.arange(len(data))
+
+			# Calibrate binning
+			energies = m*binning + b
+
+			# Create a dictionary with the calibrated data
+			df = {
+				'energy (keV)': energies,
+				'counts': data
+			}
+
+			# Convert dictionary to pandas dataframe
+			df = pd.DataFrame.from_dict(df)
+
+			# Ask user if they want to set x-bounds
+			doBounds = input("Input x-bounds? (y/n): ")
+
+			if doBounds == 'y':
+
+				# Get bounds from user
+				xStart = get_numerical_input("Input x-start: ")
+				xEnd = get_numerical_input("Input x-end: ")
+
+			else:
+				xBounds = None
+			
+			# Check length (bins) of spectrum
+			nBins = len(data)
+
+			# Clipping noise (about bin 100 or 1/10 of the spectrum)
+			cutoff = int(nBins/10)
+			clip_val = np.max(data[cutoff:])*1.5
+
+			# Clip the spectrum to remove noise
+			data = np.clip(data, a_min=0, a_max=clip_val)
+
+			##Step 3. Display the calibrated spectrum
+
+			# Plot parameters
+			plotArgs = {
+				'color': 'k',
+				'label': 'data',
+				'xlabel': 'bin',
+				'ylabel': 'counts',
+				'title': f'{element} calibrated spectrum',
+				'legend': True
+				}
+
+			# Plot and display the spectrum using plot_data function from plot.py
+			plot.plot_data(binning, data, plotArgs, xBounds=xBounds)
+
+			## Step 4: Save the calibrated spectrum as a CSV file and image
+
+			# Save figure using create_image function in files.py
+			files.create_image(element +'_calibrated_spectrum', folder_path)
+			
+			plt.show()
+
+			# Save calibrated spectrum dataframe as CSV file using create_csv function in files.py
+			files.create_csv(df, element +'_calibrated_spectrum', folder_path)
+
+			print(f"\nCalibrated {element} spectrum.")
+			
+			total_items_processed += 1
+
+		## If an error is raised, the program will continue to iterate through the list of files
 		except Exception as e:
-			raise e
+
+			# Tells user which file caused error and continues
+			print(f"Error processing {data_processed.filename}")
+			print("Please reprocess this file.")
+			print("Skipping file....")
+
+			# If there is a different error, tell user
+			print(f"Error Message: {e}")	
+
 		finally:
-			pass
+			
+			# Print progress
+			print(f"{total_items_processed} of {num_items_to_process} files processed.")
+
+	return

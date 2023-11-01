@@ -35,6 +35,13 @@ def plot_data(x, y, plotArgs, xBounds=None, yBounds=None):
 	# Plot whole spectrum
 	plt.plot(x, y, color=plotArgs['color'], label=plotArgs['label'])
 
+	# Add title
+	plt.title(plotArgs['title'])
+
+	# Add axes labels
+	plt.xlabel(plotArgs['xlabel'])
+	plt.ylabel(plotArgs['ylabel'])
+	
 	# If user specified x-bounds
 	if xBounds != None:
 
@@ -47,19 +54,14 @@ def plot_data(x, y, plotArgs, xBounds=None, yBounds=None):
 	# Set y-bounds
 		plt.ylim(yBounds)
 
-		# Add title
-		plt.title(plotArgs['title'])
-
-		# Add axes labels
-		plt.xlabel(plotArgs['xlabel'])
-		plt.ylabel(plotArgs['ylabel'])
-
 	# If user wants to show a legend
 	if plotArgs['legend']:
 
 		# Add legend
 		plt.legend()
 	
+
+
 def select_peak(bins, spectral_data, element, clipVal=0, doublet=False):
 	"""
     Selects a peak from a given spectrum and fits a Gaussian curve to it.

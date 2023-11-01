@@ -37,8 +37,10 @@ def main():
 
 	args = parser.parse_args()
 
-	if args.calibrate:
+	if args.calibration:
 		"""
+		Creates a calibration curve from a set of input files containing calibration points.
+
 		Step 1. Choose a folders or files containing calibration points using the function spectrum.process_spectrum()
 		Step 2. Combine data as needed from all files
 		Step 3. Create a calibration curve using the combined data and calling the function calibrate.create_calibration_curve()
@@ -49,6 +51,9 @@ def main():
 
 	if args.cpoints:
 		"""
+		Select regions of interest in a spectrum and fit Gaussian curves to them.
+		The results from the Gaussian fit are saved as a CSV file.
+
 		Step 1. Choose a file(s) containing spectrum data using the function files.load_files()
 		Step 2. Read the spectrum data from the file(s) using the function spectrum.read_spectra()
 		Step 3. Plot the spectrum data and select region of interest using the function plot.select_peak()
@@ -59,33 +64,39 @@ def main():
 		"""
 		calibrate.calibration_points()
 
-	if args.display:
+	if args.calibrate:
 		"""
-		***Create this function: calibrate.calibrate_spectrum()***
+		Calibrates spectral data using a calibration curve and saves the calibrated data as a CSV file and image.
+		
 		Step 1. Upload a spectrum file and calibration curve file using the function calibrate.calibrate_spectrum()
 		Step 2. Calibrate the spectrum using the function calibrate.calibrate_spectrum()
 		Step 3. Display the calibrated spectrum using the function plot.display_spectrum()
+		Step 4. Save the calibrated spectrum to a csv file using the function files.create_csv()
 		"""
-		plot.display_spectrum()
+		calibrate.calibrate_spectrum()
 
 	if args.resolution:
 		"""
 		***Create this function: calibrate.determine_resolution()***
-		Step 1. Load a file(s) containing Gaussian fit parameters using the function files.load_files()
-		Step 2. Determine the resolution of the spectrometer using the function calibrate.determine_resolution()
-		Step 3. Plot sigmas vs energy using plot.plot_data()
-		Step 4. Save the resolution to a csv file using the function files.create_csv()
+
+		Step 1. Load file of expected spectrum from STEAM's IDL code and Gaussian fit file using function calibrate.determine_response()
+		Step 2. Pull max_counts from Gaussian fit file
+		Step 3. Plot max_counts vs expected_counts using plot.plot_data()
+		Step 4. Save the response to a csv file using the function files.create_csv()
 		Step 5. Save the plot to an image file using the function files.create_image()
+		
 		"""
 		calibrate.determine_resolution()
 
 	if args.response:
 		"""
-		***Create this function: calibrate.determine_response()***
-		Step 1. Load file of expected spectrum from STEAM's IDL code and Gaussian fit file using function calibrate.determine_response()
-		Step 2. Pull max_counts from Gaussian fit file
-		Step 3. Plot max_counts vs expected_counts using plot.plot_data()
-		Step 4. Save the response to a csv file using the function files.create_csv()
+		Determines the detector response by analyzing the Full Width Half Max (FWHM) and Energy (E) of the calibration points.
+		Saves the detector response data to a CSV file and displays a plot of FWHM vs E.
+		
+		Step 1. Load a file(s) containing Gaussian fit parameters using the function files.load_files()
+		Step 2. Determine the resolution of the spectrometer using the function calibrate.determine_resolution()
+		Step 3. Plot sigmas vs energy using plot.plot_data()
+		Step 4. Save the resolution to a csv file using the function files.create_csv()
 		Step 5. Save the plot to an image file using the function files.create_image()
 		"""
 		calibrate.detector_response()
