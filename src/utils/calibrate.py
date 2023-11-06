@@ -798,16 +798,16 @@ def calibrate_spectrum():
 
 			# Plot parameters
 			plotArgs = {
-				'color': 'k',
+				'color': 'b',
 				'label': 'data',
-				'xlabel': 'bin',
+				'xlabel': 'keV',
 				'ylabel': 'counts',
 				'title': f'{element} calibrated spectrum',
 				'legend': True
 				}
 
 			# Plot and display the spectrum using plot_data function from plot.py
-			plot.plot_data(binning, data, plotArgs, xBounds=xBounds)
+			plot.plot_data(energies, data, plotArgs, xBounds=xBounds)
 
 			## Step 4: Save the calibrated spectrum as a CSV file and image
 
