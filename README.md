@@ -1,6 +1,7 @@
 # STEAM Spectrometer Calibration
 
-Python code to create calibration curves for Amptek's soft X-Ray spectrometer ([Amptek X-123 SDD](https://www.amptek.com/internal-products/x-123-complete-x-ray-spectrometer)) and hard X-Ray spectrometer ([Amptek X-123 CdTe](https://www.amptek.com/internal-products/x-123-cdte-complete-x-ray-gamma-ray-spectrometer-with-cdte-detector)). This code has the following functions:
+Python code to create calibration curves for Amptek's soft X-Ray spectrometer and hard X-Ray spectrometer. This code has the following functions:
+
 
 
 ## Table of Contents
@@ -9,8 +10,12 @@ Python code to create calibration curves for Amptek's soft X-Ray spectrometer ([
 	- [Prerequisites](#prerequisites)
 	- [Installation](#installation)
 3. [Calibration Procedure](#calibration-procedure)
-4. [Contributing](#contributing)
-5. [License](#license)
+	- [Creating a Calibration Curve](#creating-calibration-curve)
+	- [Calibrate Spectra](#calibrate-spectra)
+	- [Determine Resolution of Spectrometer](#determine-resolution-of-spectrometer)
+	- [Determine Response of Spectrometer](#determine-response-of-spectrometer)
+5. [Contributing](#contributing)
+6. [License](#license)
 
 
 ## About the Project
@@ -149,10 +154,28 @@ Follow the steps below to create a calibration curve.:
 
 ---
 ### Determine Resolution of Spectrometer
-Command: ```python main.py -r``` 
+
+Before continuing, ensure you have the following:
+ - **Calibration curve points file:** This file contains all of the calibration points used to make the calibration curve. Created in the [Calibration Curve](#calibration-curve) section.
+	- Example calibration points file
+ - **Expected Spectrum:** This file can be created using STEAM's IDL code, or your own. From this file needs to contain the expected max counts of the desired energy peaks.
+
+Follow the steps below to determine the detector response.:
+
+**Step 1:** Enter command into terminal to determine the detector response.
+- Command: ```python main.py -r``` 
 
 	or, ```python main.py --resolution```
 
+**Step 2:** Enter file location of calibration points file.
+	- Example calibration points file
+
+**Step 3:** Enter file location of expected counts file.
+	- Example of expected counts file (from STEAM's IDL)
+
+ **Step 4:** Follow prompts.
+ 	- Example of exported resolution file
+  	- Example of exported resolution plot (Measured vs Expected Max Counts)
 
 
 ### Determine Response of Spectrometer
