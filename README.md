@@ -45,7 +45,7 @@ See [Calibration Procedure](#calibration-procedure) section for more information
 ### Project Structure
 
 ```
-root
+root/src
 ├───data (contains all the data files)
 │   ├───calibration
 │   │   ├───processed
