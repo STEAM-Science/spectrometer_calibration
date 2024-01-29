@@ -503,6 +503,7 @@ def create_calibration_curve():
 				'Cd': {'marker': '*', 'color': 'g'}
 			}
 		
+		plt.figure()
 		# Iterate through all isotopes
 		for isotope in isotopes:
 
@@ -534,6 +535,7 @@ def create_calibration_curve():
 
 		## Step 6: Display and save plot as png.
 		# Set plot properties
+		#plt.title(f'{name} Calibration Curve')
 		plt.xlabel('MCA channel')
 		plt.ylabel('Energy (keV)')
 		plt.xlim(0, 1023)
@@ -544,6 +546,47 @@ def create_calibration_curve():
 
 		# Display the plot
 		plt.show()
+
+		plt.figure()
+		# Iterate through all isotopes
+		for isotope in isotopes:
+
+			# Iterate through all data in combined_data to separate mu and E data for each isotope
+			for y in combined_data.mu:
+				for x in combined_data.E:
+					if x[0] == isotope and y[0] == isotope:
+
+						# Unpacking data
+						isotope_E_data = x[1]
+						isotope_mu_data = y[1]
+
+						#plot.isotope_styles(isotope_mu_data, isotope_E_data, isotope)
+
+						# Get the marker and color for the current isotope
+						marker = isotope_styles[isotope]['marker']
+						color = isotope_styles[isotope]['color']
+		
+						## Plotting residuals
+						# Residuals
+						# Energy - (m*counts + b)
+						residuals = isotope_E_data - (m*isotope_mu_data + b)
+
+						residual_errors = np.std(residuals)
+
+						plt.errorbar(range(len(residuals)), residuals, yerr=residual_errors, fmt='o')
+		
+			#plt.title(f'{name} Calibration Curve Residuals')
+			plt.axhline(0, color='k', linestyle='--')
+			plt.xlabel('MCA channel')
+			plt.ylabel('Residuals')
+			plt.xlim(0, 1023)
+			plt.legend()
+
+			files.create_image(name + '_residuals', folder_path)
+
+			plt.show()
+
+
 
 		## Step 7: Save combined data and fit results as csv
 		# Creating dictionary to store combined data, without isotope information
@@ -705,7 +748,53 @@ def determine_resolution(advance=None, calibration_points=None):
 
 	print("Beginning resolution analysis...\n")
 
+	# Get root directory
+	root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))	
+
+	# Find NIST data		
+	nist_path = f'{root_dir}/nist_data/Spectral_Lines_{element}.csv'
+	
+	# Read NIST data
+	nist_x, nist_y = np.loadtxt(nist_path, delimiter=',').T
+
+	# Create mask to clip data to below 50 keV
+	mask = nist_x < 50
+	nist_x = nist_x[mask]
+	nist_y = nist_y[mask]
+
+	# Recompose into matrix of coordinates
+	nist_coords = np.array([nist_x, nist_y]).T
+
+	element_dict = {
+		'Am': [
+			{'peak': 1, 'energy': 13.96, 'rel_counts': 9.6},
+			{'peak': 2, 'energy': 17.751, 'rel_counts': 5.7},
+			{'peak': 3, 'energy': 16.816, 'rel_counts': 2.5}
+		],
+		'Ba': [
+			{'peak': 1, 'energy': 4.286, 'rel_counts': 6},
+			{'peak': 2, 'energy': 4.717, 'rel_counts': 0.93},
+		],
+		'Fe': [
+			{'peak': 1, 'energy': 5.899, 'rel_counts': 16.9},
+			{'peak': 2, 'energy': 6.49, 'rel_counts': 1.98}
+		],
+		'Zn': [
+			{'peak': 1, 'energy': 8.048, 'rel_counts': 23.4},
+			{'peak': 2, 'energy': 8.905, 'rel_counts': 2.78}
+		],
+	}
+
 	max_counts = calibration_points['max_counts']
+	peaks = calibration_points['energy']
+
+	for i in range(len(max_counts)):
+		for j in range(len(element_dict[element])):
+			if peaks[i] == element_dict[element][j]['energy']:
+				element_dict[element][j]['max_counts'] 
+				max_counts[i]
+
+
 
 
 def calibrate_spectrum():

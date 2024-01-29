@@ -4,6 +4,7 @@ import utils.files as files
 import utils.spectrum as spectrum
 import utils.calibrate as calibrate
 import utils.plot as plot
+import utils.simulated as sim
 
 
 def main():
@@ -35,7 +36,14 @@ def main():
 						help="determine the response of the spectrometer", 
 						action="store_true")
 
+	parser.add_argument("-ex", "--expected", 
+						help="expected spectra", 
+						action="store_true")
+
 	args = parser.parse_args()
+
+	if args.expected:
+		sim.smooth_isotope_spectrum()
 
 	if args.calibration:
 		"""

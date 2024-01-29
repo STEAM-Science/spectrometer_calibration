@@ -1,15 +1,20 @@
 # STEAM Spectrometer Calibration
 
-Python code to create calibration curves for Amptek's soft X-Ray spectrometer and hard X-Ray spectrometer. This code has the following functions:
+This project contains Python code designed for calibration of Amptek's soft X-Ray spectrometer and hard X-Ray spectrometer. The code provides the following functionalities:
 
+- **Create a calibration curve:** Generate a calibration curve based on the input data.
+- **Calibrate spectra:** Apply the calibration curve to raw spectra to obtain calibrated spectra.
+- **Determine the resolution of the spectrometer:** Calculate the resolution of the spectrometer based on the calibrated spectra.
+- **Determine the response of the spectrometer:** Evaluate the response of the spectrometer across different energy levels.
 
 
 ## Table of Contents
 1. [About the Project](#introduction)
-2. [Environment Setup](#environment-setup)
+2. [Project Structure](#project-structure)
+3. [Environment Setup](#environment-setup)
 	- [Prerequisites](#prerequisites)
 	- [Installation](#installation)
-3. [Calibration Procedure](#calibration-procedure)
+4. [Calibration Procedure](#calibration-procedure)
 	- [Creating a Calibration Curve](#creating-calibration-curve)
 	- [Calibrate Spectra](#calibrate-spectra)
 	- [Determine Resolution of Spectrometer](#determine-resolution-of-spectrometer)
@@ -19,30 +24,14 @@ Python code to create calibration curves for Amptek's soft X-Ray spectrometer an
 
 
 ## About the Project
-This code was written to calibration STEAM's flight model (FM) spectrometers. These tests aimed to calibrate the gain and offset, response, and resolution of two off-the-shelf (OTS) X-Ray spectrometers, one soft X-Ray spectrometer ([Amptek X-123 SDD](https://www.amptek.com/internal-products/x-123-complete-x-ray-spectrometer)), 
+This code was written to calibrate STEAM's flight model (FM) spectrometers. These tests aimed to calibrate the gain and offset, response, and resolution of two off-the-shelf X-Ray spectrometers, one soft X-Ray spectrometer ([Amptek X-123 SDD](https://www.amptek.com/internal-products/x-123-complete-x-ray-spectrometer)), 
 and one hard X-Ray spectrometer ([Amptek X-123 CdTe](https://www.amptek.com/internal-products/x-123-cdte-complete-x-ray-gamma-ray-spectrometer-with-cdte-detector)). Calibration data is derived from the well-known emission lines from calibrated radioisotope sources at various energies within the range of 0-70 keV (STEAM’s region of interest). The radioisotopes and their activities are the following: Am-241 at 1 μCi, Ba-133 at 10 μCi, Cd-109 at 10 μCi, Fe-55 at 100 μCi, and Zn-65 at 10 μCi. 
 
 The gain and offset of the spectrometer were determined using the built-in channels during data analysis. The resolution was determined by the peak widths of the emission lines, while the response was determined by the peak counts. The efficiency of the spectrometer was determined by combining the response and the activity of the isotope.
 
 For more information on how STEAM's spectrometers were calibrated, see the [STEAM Spectrometer Calibration Report](link)  
 
-## Environment Setup
-### Prerequisites
-
-- Visual Studio Code
-- Python 3.11.3 or higher
-- pip (Python package manager)
-
-### Installation
-**1.** Navigate to the project directory: `cd ..\spectrometer_calibration\src`
-
-**2.** Install dependencies: `pip install -r requirements.txt`
-
-**3.** Run the project:  `python main.py`
-
-See [Calibration Procedure](#calibration-procedure) section for more information on how to use the project.
-
-### Project Structure
+## Project Structure
 
 ```
 root
@@ -54,6 +43,9 @@ root
 │   │   ├───cCurves
 │   │   ├───resolution
 │   │   ├───response
+├───environment
+│   ├───environment.yml
+│   ├───requirements.txt
 ├───utils
 │   ├───calibrate.py
 │   ├───classes.py
@@ -73,6 +65,10 @@ main.py
 		- `resolution`: contains the resolution results
 		- `response`: contains the response results
 
+- `environment`: This directory contains the environment files
+	- `environment.yml`: contains the environment file for Anaconda
+	- `requirements.txt`: contains the environment file for pip
+
 - `utils`: This directory contains various tools written in Python for analyzing the calibration data
 	- `classes.py`: contains classes to store data
 	- `calibrate.py`: contains functions for calibrating the spectrometer
@@ -84,9 +80,64 @@ main.py
 
 - `main.py`: This is the main script for running the project
 
-ThE data used to characterize the spectrometer was collected using both Amptek's DPPMCA software and STEAM's ground software (GSW). The data from Amptek is saved as a ```.mca``` converted to a raw ```.txt``` file and the data from STEAM is initially saved as a ```.csv``` file. STEAM's GSW saves the cumulative spectrum as the last line of the ```.csv``` file. The cumulative spectrum is the sum of all the spectra collected during the run. The cumulative spectrum is used for calibration.
+The data used to characterize the spectrometer was collected using both Amptek's DPPMCA software and STEAM's ground software (GSW). The data from Amptek is saved as a ```.mca``` converted to a raw ```.txt``` file and the data from STEAM is initially saved as a ```.csv``` file. STEAM's GSW saves the cumulative spectrum as the last line of the ```.csv``` file. The cumulative spectrum is the sum of all the spectra collected during the run. The cumulative spectrum is used for calibration.
 
 Finally, all commands are run from the ```main.py``` file. This file contains the main function that calls all the other functions in the ```utils``` folder.
+
+## Environment Setup
+### Prerequisites
+
+- Visual Studio Code
+- Python 3.11.3 or higher
+- pip (Python package manager)
+
+### Installation
+
+This project uses the following Python packages:
+
+- matplotlib
+- mpl_point_clicker
+- numpy
+- os
+- pandas
+- pathlib
+- re
+- scipy
+
+To install these packages, use the provided environment file by running following steps:
+
+**1.** Install Visual Studio Code (VS Code): [VS Code Download](https://code.visualstudio.com/download)
+
+**2.** Install Python 3.11.3 or higher: [Python Download](https://www.python.org/downloads/)
+
+**3.** In VS Code, install the Python extension and Pylance: 
+- [Python Extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
+- [Pylance](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance)
+
+**3. (Optional but recommended)** Install Anaconda: [Anaconda Download](https://www.anaconda.com/products/individual)
+
+**4.** Navigate to the project directory: `cd ..\spectrometer_calibration\src`
+
+**5.** Install dependencies, if using:
+
+- 5a. Using Anaconda (recommended)
+	- Open Anaconda command prompt. To verify if the Anaconda Prompt is open, type `conda` and press enter. You should get a help message that explains usage for conda
+	- Create environment and install packages from environment.yml file:
+	`conda env create -f environment.yml`
+	- Activate environment: `conda activate myenv`
+	
+	To check if the environment is active, type `conda env list` and press enter. You should see a list of environments, and the active environment should be marked with an asterisk (*).
+
+- 5b. Using pip: 
+	- Open command prompt. 
+	- Create environment: `python -m venv env`
+	- Activate environment: `source myenv/bin/activate`
+	- Install packages from requirements.txt file: `pip install -r environment/requirements.txt`
+
+
+	*venv* is a module that comes with Python 3.3 and later versions, so you do not need to install it separately. It is already available on both OS and Windows, as long as you have a compatible Python version. You can check your Python version by running `python --version` in a terminal or command prompt. If you get a message saying that the command was not found or something similar, you’ll need to install Python. If you get a version number (e.g. Python 3.11.2), you’re good to go.
+
+**6.** Run the project using the commands outlined in the [Calibration Procedure](#calibration-procedure) section.
 
 ## Calibration Procedure (Usage)
 
