@@ -4,7 +4,7 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 import periodictable as pt
-from scipy.ndimage import gaussian_filter1d
+from scipy.ndimage import gaussian_filter
 from itertools import islice
 
 import os
@@ -78,179 +78,177 @@ def get_edges(array, num_bins):
 # Main function to simulate a spectrum
 def smooth_isotope_spectrum():
 	
-	# Ask user to select the detector first using the select_detector function
-	detector_select, defaults = select_detector()
+	try:
+		# Ask user to select the detector first using the select_detector function
+		detector_select, defaults = select_detector()
 
-	# Set default values based on detector selection
-	resolution = defaults["resolution"]
-	aperture = defaults["aperture"]
+		# Set default values based on detector selection
+		resolution = defaults["resolution"]
+		aperture = defaults["aperture"]
 
-	# Isotope dictionary
-	isotopes = {
-		"Am": {"activity": 1, "half_life": 432.2}, #activity in micro Curies, half-life in years
-		"Ba": {"activity": 10, "half_life": 10.5},
-		"Cd": {"activity": 10, "half_life": 1.27},
-		"Fe": {"activity": 100, "half_life": 2.7},
-		"Zn": {"activity": 10, "half_life": 0.668},
-	}
+		# Isotope dictionary
+		isotopes = {
+			"Am": {"activity": 1, "half_life": 432.2}, #activity in micro Curies, half-life in years
+			"Ba": {"activity": 10, "half_life": 10.5},
+			"Cd": {"activity": 10, "half_life": 1.27},
+			"Fe": {"activity": 100, "half_life": 2.7},
+			"Zn": {"activity": 10, "half_life": 0.668},
+		}
 
-	# Print instructions for user MOVE
-	print("\nFollow the prompts below. Press enter to use the default value.")
+		# Print instructions for user MOVE
+		print("\nFollow the prompts below. Press enter to use the default value.")
 
-	# User input, if needed add "options" to the inputs dictionary
-	inputs = {
-		"detector_select": {"prompt": "Select detector (0 = SDD (default), 1 = CdTe) : ", "default": 'detector_select', "type": int},
-		"resolution": {"prompt": f"Enter detector resolution in keV FWHM (default is {resolution}): ", "default": resolution, "type": float},
-		"aperture": {"prompt": f"Enter aperture radius in microns (default is {aperture}): ", "default": aperture, "type": int},
+		# User input, if needed add "options" to the inputs dictionary
+		inputs = {
+			"detector_select": {"prompt": "Select detector (0 = SDD (default), 1 = CdTe) : ", "default": 'detector_select', "type": int},
+			"resolution": {"prompt": f"Enter detector resolution in keV FWHM (default is {resolution}): ", "default": resolution, "type": float},
+			"aperture": {"prompt": f"Enter aperture radius in microns (default is {aperture}): ", "default": aperture, "type": int},
+			
+			"filter": {"prompt": "Enter filter material (default is Be): ", "default": "Be", "type": str},
+			"filter_thick": {"prompt": "Enter filter thickness in microns (default is 0): ", "default": 0, "type": float},
+
+			"element": {"prompt": "Enter isotope without isotope identification (ex: Fe-55 -> Fe) (default is Fe-55): ", "default": "Fe", "type": str},
+			"activity": {"prompt": "Enter isotope activity in microCuries (default is 100): ", "default": 100, "type": float},
+
+			"distance": {"prompt": "Enter isotope distance from detector in cm (default is 1): ", "default": 1., "type": float},
+			"time": {"prompt": "Enter isotope integration time in seconds (default is 1): ", "default": 1., "type": float},
+			"days": {"prompt": "Enter days since isotope purchase (default is 1): ", "default": 1, "type": int},
+
+			"wid_ee": {"prompt": "Complete. Press enter to continue:", "default": defaults["wid_ee"], "type": float},
+				}
+
+		# Append the user input from prompts to inputs dictionary
+		total_questions = len(inputs)-2
+		for i, (key, value) in enumerate(islice(inputs.items(), 1, None), start=1):
+			if i == total_questions+1:
+				prompt = value["prompt"]
+			else:
+				prompt = f"({i}/{total_questions}): {value['prompt']}"
+			
+			inputs[key]["value"] = get_input(prompt, value["default"], value["type"])
+
+			if key == "isotope" and key == "filter":
+				lower_case = inputs[key]["value"].lower()
+				inputs[key]["value"] = lower_case.capitalize()
+
+		print("\nUser inputs stored...")
+		print("Continuing with expected measurements...")
+
+		# Set variables from inputs dictionary
+		filter_material = inputs["filter"]["value"]
+		filter_thick = inputs["filter_thick"]["value"]
+
+		element = inputs["element"]["value"]
+		activity = inputs["activity"]["value"]
+		distance = inputs["distance"]["value"]
+		time = inputs["time"]["value"]
+		days = inputs["days"]["value"]
+
+		wid_ee = defaults["wid_ee"]
+
+		# Exoponentially decay of the activity
+		# Calculate the decay constant, convert half-life from years to days
+		decay_constant = np.log(2) / (isotopes[element]["half_life"] * 365)
+
+		# Calculate the activity after a certain number of days
+		activity_after_decay = activity * np.exp(-decay_constant * days)
+
+		print(f"\nActivity of {element} after {days} days: {activity_after_decay:.4g} microCuries")
+
+		# Calculate area in cm^2
+		area = np.pi*(aperture*1e-4/2.)**2 
+			
+		# Create arbitrary energy array from 0.5 to 20 keV with 0.01 keV steps (bins)
+		wid_ee = (20 - 0.5)/1024
+
+		# Create arbitrary energy array, 0.5-20 keV, ~0.02 keV bins
+		energy_array = np.arange((20.-0.5)/wid_ee+1)*wid_ee+0.5
+
+		# Call to get_edges function
+		eee, eee_mean, eee_wid = get_edges(energy_array, num_bins=10239)
+
+		# Make new edges for fine energy array
+		wid_ee2 = (20 - 0.5)/1024
+		energy_array2 = np.arange((20.-0.5)/wid_ee2+1)*wid_ee2+0.5
+
+		# Call to get_edges function
+		eee2, eee_mean2, eee_wid2 = get_edges(energy_array2, num_bins=1023)
+
+
+		# Create spectrum
+		# Idl pro files: make_isotope_spectra, instrument_response, air_attenuation 
 		
-		"filter": {"prompt": "Enter filter material (default is Be): ", "default": "Be", "type": str},
-		"filter_thick": {"prompt": "Enter filter thickness in microns (default is 0): ", "default": 0, "type": float},
 
-		"element": {"prompt": "Enter isotope without isotope identification (ex: Fe-55 -> Fe) (default is Fe-55): ", "default": "Fe", "type": str},
-		"activity": {"prompt": "Enter isotope activity in microCuries (default is 100): ", "default": 1, "type": float},
-
-		"distance": {"prompt": "Enter isotope distance from detector in cm (default is 1): ", "default": 1., "type": float},
-		"time": {"prompt": "Enter isotope integration time in seconds (default is 1): ", "default": 1., "type": float},
-		"days": {"prompt": "Enter days since isotope purchase (default is 1): ", "default": 1, "type": int},
-
-		"wid_ee": {"prompt": "Complete. Press enter to continue:", "default": defaults["wid_ee"], "type": float},
-			}
-
-	# Append the user input from prompts to inputs dictionary
-	total_questions = len(inputs)-2
-	for i, (key, value) in enumerate(islice(inputs.items(), 1, None), start=1):
-		if i == total_questions+1:
-			prompt = value["prompt"]
-		else:
-			prompt = f"({i}/{total_questions}): {value['prompt']}"
+		# make_isotope_spectra.pro
+		print(f"\nCalculating {element} spectrum...")
+		spectrum = area * make_isotope_spectra(eee, element, activity_after_decay, time) / (4.*np.pi*distance**2)
 		
-		inputs[key]["value"] = get_input(prompt, value["default"], value["type"])
+		# instrument_response.pro (simulated, NOT from calibrate.py)
+		print("Calculating instrument response...")
+		response = instrument_response(eee_mean2, detector_select, filter_thick, filter_material)
 
-		if key == "isotope" and key == "filter":
-			lower_case = inputs[key]["value"].lower()
-			inputs[key]["value"] = lower_case.capitalize()
+		# air_attenuation.pro
+		print("Calculating air attenuation...")
+		air_attenuation = [0]
+		air_atten = atten.air_attenuation(eee_mean2, distance)
+		air_attenuation = np.append(air_attenuation, air_atten)
 
-	print("\nUser inputs stored...")
-	print("Continuing with expected measurements...")
-
-	# Set variables from inputs dictionary
-	filter_material = inputs["filter"]["value"]
-	filter_thick = inputs["filter_thick"]["value"]
-
-	element = inputs["element"]["value"]
-	activity = inputs["activity"]["value"]
-	distance = inputs["distance"]["value"]
-	time = inputs["time"]["value"]
-	days = inputs["days"]["value"]
-
-	wid_ee = defaults["wid_ee"]
-
-	# Exoponentially decay of the activity
-	# Calculate the decay constant, convert half-life from years to days
-	decay_constant = np.log(2) / (isotopes[element]["half_life"] * 365)
-
-	# Calculate the activity after a certain number of days
-	activity_after_decay = activity * np.exp(-decay_constant * days)
-
-	print(f"\nActivity of {element} after {days} days: {activity_after_decay:.4g} microCuries")
+		# now need gaussfold (line 84 of IDL) its a built in idl thing cries
+		# needs to be spectrum, sigma <_ reagrranged FWHM equation
 
 
-	# Calculate area in cm^2
-	area = np.pi*(aperture*1e-4/2.)**2 
+		print("Smoothing spectrum using gaussian filter...")
+		print(f'\nresolution: {resolution}, eee_mean: {eee_mean2}')
+		sigma = np.mean(resolution/2.355/eee_wid)
+		print(f'sigma: {sigma}')
+		print(spectrum)
+		smooth_spectrum = gaussian_filter(spectrum, sigma, mode='constant', cval=0.0)
+		smooth_spectrum = np.append(smooth_spectrum, 0)
 		
-	# Create arbitrary energy array from 0.5 to 20 keV with 0.01 keV steps (bins)
-	wid_ee = (20 - 0.5)/1024
 
-	# Create arbitrary energy array, 0.5-20 keV, ~0.02 keV bins
-	energy_array = np.arange((20.-0.5)/wid_ee+1)*wid_ee+0.5
+		# Rebin the spectrum
+		#from bin 0 to 9, that is bin 1 and so on
+		smooth_spectrum_rebinned = []
+		for i in range(0, len(smooth_spectrum), 10):
+			rags = smooth_spectrum[i:i+10] #current chunk
 
-	# Call to get_edges function
-	eee, eee_mean, eee_wid = get_edges(energy_array, num_bins=10240)
+			#sum the chunk
+			rags_sum = sum(rags)
+			smooth_spectrum_rebinned.append(rags_sum)
+		
+		print(len(smooth_spectrum_rebinned))
+		print(smooth_spectrum_rebinned)
+		
+		smooth_spectrum_rebinned = smooth_spectrum_rebinned*air_attenuation*resolution
+		# Add Poisson noise
+		smooth_spectrum_rebinned_noise = atten.add_poisson_noise(smooth_spectrum_rebinned)
+		#print("\nSpectrum rebinned with Poisson noise: ", spectrum_rebinned)
+		# print("\nspectrum rebinned: ", spectrum_rebinned)
+		# print("\neee2: ", eee2)
 
-	# Make new edges for fine energy array
-	wid_ee2 = (20 - 0.5)/1024
-	energy_array2 = np.arange((20.-0.5)/wid_ee2+1)*wid_ee2+0.5
+		print("\nPlotting spectrum...")
+		print("Displaying spectrum.")
 
-	# Call to get_edges function
-	eee2, eee_mean2, eee_wid2 = get_edges(energy_array2, num_bins=1024)
+		# Plot the rebinned spectrum
+		plt.plot(eee2, smooth_spectrum_rebinned_noise)
+		plt.legend()
 
+		#plt.plot(eee_mean2, spectrum_rebinned, label='spectrum')
+		plt.title(f'{element} Expected Spectrum')
+		plt.xlabel('Energy (keV)')
+		plt.ylabel('Counts (photons)')
+		plt.show()
 
-	# Create spectrum
-	# Idl pro files: make_isotope_spectra, instrument_response, air_attenuation 
+		# Creating the output_spectrum dictionary
+		output_spectrum = {'energy': eee2, 'spectrum': smooth_spectrum_rebinned_noise}
 
-	# make_isotope_spectra.pro
-	print(f"Calculating {element} spectrum...")
-	spectrum = area * make_isotope_spectra(eee, element, activity_after_decay, time) / (4.*np.pi*distance**2)
-
-	# instrument_response.pro (simulated, NOT from calibrate.py)
-	print("Calculating instrument response...")
-	response = instrument_response(eee_mean, detector_select, filter_thick, filter_material)
-
-	# air_attenuation.pro
-	print("Calculating air attenuation...")
-	air_attenuation = atten.air_attenuation(eee_mean, distance)
-
-	# now need gaussfold (line 84 of IDL) its a built in idl thing cries
-	# needs to be spectrum, sigma <_ reagrranged FWHM equation
-
-
-	print("Smoothing spectrum using gaussian filter...")
-	print(f'resolution: {resolution}, eee_wid: {eee_wid2}')
-	sigma = np.mean(resolution/2.355/eee_wid)
-	print(f'sigma: {sigma}')
-	print(spectrum)
-	smooth_spectrum = gaussian_filter1d(spectrum, sigma)
-
-	print(smooth_spectrum)
-
-
-	# # rebin data (ssw_rebinner, takes data array (energy array), old bins (eee), new bins (eee2)) HUH?
-	# #only rescaled x (energy) axis, not y (counts)
-	# indicies = np.digitize(energy_array, eee2) #finds the indices of the new energy array that correspond to the old energy array
-	# #^ could i just do eee2 instead of new_x??
-
-	# print(len(energy_array))
-
-	# # poisson noise
-	# spectrum_rebinned = atten.add_poisson_noise(indicies) 
-
-
-	# Rebin the spectrum
-	# print(f'length of eee: {len(eee)} and length of eee2: {len(eee2)}') 
-	# print(f'length of smooth_spectrum: {len(smooth_spectrum)} and legnth of spectrum: {len(spectrum)}')
-	# indices = np.digitize(eee, eee2)
-	# spectrum_rebinned = np.bincount(indices, weights=smooth_spectrum, minlength=len(eee2))
-	# print(spectrum_rebinned)
-	# print(len(spectrum_rebinned))
-	# print(len(eee2))
-
-	# Define the mid-points of your old and new bins
-	old_bins_mid = eee[:-1] + np.diff(eee)/2
-	new_bins_mid = eee2[:-1] + np.diff(eee2)/2
-
-	# Interpolate to get smooth_spectrum in new bins
-	smooth_spectrum_rebinned = np.interp(new_bins_mid, old_bins_mid, smooth_spectrum)
-
-	# Now you can safely rebin the spectrum
-	indices = np.digitize(smooth_spectrum_rebinned, eee2)
-	spectrum_rebinned = np.bincount(indices, weights=smooth_spectrum_rebinned, minlength=len(eee2))
-	spectrum_rebinned = np.resize(spectrum_rebinned, len(eee_mean2))
-
-	# Add Poisson noise
-	spectrum_rebinned = atten.add_poisson_noise(spectrum_rebinned)
-
-	print("\nPlotting spectrum...")
-	print("Displaying spectrum.")
-
-	plt.plot(spectrum_rebinned, label='spectrum')
-	plt.xlabel('Energy (keV)')
-	plt.ylabel('Counts (photons)')
-	plt.show()
-
-	# Creating the output_spectrum dictionary
-	output_spectrum = {'energy': eee_mean2, 'spectrum': spectrum_rebinned}
-
-	return
+	except ValueError as e:
+		print(f"\nAn error has occured: {e}.")
+		return
+	except Exception as e:
+		print(f"\nAn error has occured: {e}.")
+		return
+	
 
 def make_isotope_spectra(energy_edges, element, activity, time):
 
@@ -319,8 +317,8 @@ def instrument_response(energy_centers, detector_select=0, filter_thick=None, fi
 		mu_filt = mu_be
 		filt_dens = be_dens
 
-
-	if detector_select == 0:  # SDD
+	# SDD
+	if detector_select == 0:  
 		be_thick = 15.  # micron
 		filt_thick = filter_thick if filter_thick is not None else 0.  # micron
 		resolution = 0.15  # keV FWHM
@@ -337,13 +335,15 @@ def instrument_response(energy_centers, detector_select=0, filter_thick=None, fi
 
 		# Convert to cts/ph = (el/ph) / (keV / (keV / el))
 		resp_besi /= (a2kev/wv_besi)/kev_per_el
+
 		# Interpolate response (cts/ph) at eee bins, zero the response below 0.5 keV (LLD)
 		resp = np.interp(energy_centers, a2kev/wv_besi, resp_besi*resp_poly)
 		resp[energy_centers < 0.5] = 0.
 
 		return resp
 
-	elif detector_select == 1:  # CdTe
+	# CdTe
+	elif detector_select == 1:  
 		be_thick = 100. * 1e-4  # cm
 		filt_thick = filter_thick if filter_thick is not None else 0.  # cm
 		resolution = 0.3  # keV FWHM

@@ -110,23 +110,24 @@ To install these packages, use the provided environment file by running followin
 
 **2.** Install Python 3.11.3 or higher: [Python Download](https://www.python.org/downloads/)
 
-**3.** In VS Code, install the Python extension and Pylance: 
-- [Python Extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
-- [Pylance](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance)
-
-**3. (Optional but recommended)** Install Anaconda: [Anaconda Download](https://www.anaconda.com/products/individual)
+**3.** In VS Code, install the Python extension and Python interpretor: 
+- Python Extension
+	- [Visual Studio Python](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
+	- [Anaconda (Recommended)](https://www.anaconda.com/products/individual)
+- Python Interpretor for VS code:
+	- [Pylance](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance)
 
 **4.** Navigate to the project directory: `cd ..\spectrometer_calibration\src`
 
 **5.** Install dependencies, if using:
 
 - 5a. Using Anaconda (recommended)
-	- Open Anaconda command prompt. To verify if the Anaconda Prompt is open, type `conda` and press enter. You should get a help message that explains usage for conda
+	- Open Anaconda command prompt. To verify if the Anaconda Prompt is open, type `conda` and press ENTER. You should get a help message that explains usage for conda
 	- Create environment and install packages from environment.yml file:
 	`conda env create -f environment.yml`
 	- Activate environment: `conda activate myenv`
 	
-	To check if the environment is active, type `conda env list` and press enter. You should see a list of environments, and the active environment should be marked with an asterisk (*).
+	To check if the environment is active, type `conda env list` and press ENTER. You should see a list of environments, and the active environment should be marked with an asterisk (*).
 
 - 5b. Using pip: 
 	- Open command prompt. 
