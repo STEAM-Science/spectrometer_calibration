@@ -111,7 +111,7 @@ def smooth_isotope_spectrum():
 			"activity": {"prompt": "Enter isotope activity in microCuries (default is 100): ", "default": 100, "type": float},
 
 			"distance": {"prompt": "Enter isotope distance from detector in cm (default is 1): ", "default": 1., "type": float},
-			"time": {"prompt": "Enter isotope integration time in seconds (default is 1): ", "default": 1., "type": float},
+			"time": {"prompt": "Enter isotope integration time in seconds (default is 1): ", "default": 100., "type": float},
 			"days": {"prompt": "Enter days since isotope purchase (default is 1): ", "default": 1, "type": int},
 
 			"wid_ee": {"prompt": "Complete. Press enter to continue:", "default": defaults["wid_ee"], "type": float},
@@ -185,7 +185,10 @@ def smooth_isotope_spectrum():
 		
 		# instrument_response.pro (simulated, NOT from calibrate.py)
 		print("Calculating instrument response...")
-		response = instrument_response(eee_mean2, detector_select, filter_thick, filter_material)
+		#response = instrument_response(eee_mean2, detector_select, filter_thick, filter_material)
+		response = [0]
+		resp_atten = instrument_response(eee_mean2, detector_select, filter_thick, filter_material)
+		response = np.append(response, resp_atten)
 
 		# air_attenuation.pro
 		print("Calculating air attenuation...")
@@ -217,9 +220,12 @@ def smooth_isotope_spectrum():
 			smooth_spectrum_rebinned.append(rags_sum)
 		
 		print(len(smooth_spectrum_rebinned))
-		print(smooth_spectrum_rebinned)
-		
-		smooth_spectrum_rebinned = smooth_spectrum_rebinned*air_attenuation*resolution
+
+		for x in response:
+			if x != 0:
+				raise ValueError("Response is zero, damn")
+
+		smooth_spectrum_rebinned = smooth_spectrum_rebinned*response
 		# Add Poisson noise
 		smooth_spectrum_rebinned_noise = atten.add_poisson_noise(smooth_spectrum_rebinned)
 		#print("\nSpectrum rebinned with Poisson noise: ", spectrum_rebinned)
@@ -230,9 +236,10 @@ def smooth_isotope_spectrum():
 		print("Displaying spectrum.")
 
 		# Plot the rebinned spectrum
+		print(f'Length of eee2: {len(eee2)} and Length of smooth_spectrum_rebinned_noise: {len(smooth_spectrum_rebinned_noise)}')
+  
 		plt.plot(eee2, smooth_spectrum_rebinned_noise)
 		plt.legend()
-
 		#plt.plot(eee_mean2, spectrum_rebinned, label='spectrum')
 		plt.title(f'{element} Expected Spectrum')
 		plt.xlabel('Energy (keV)')
@@ -240,8 +247,10 @@ def smooth_isotope_spectrum():
 		plt.show()
 
 		# Creating the output_spectrum dictionary
-		output_spectrum = {'energy': eee2, 'spectrum': smooth_spectrum_rebinned_noise}
-
+		output_spectrum = {'element': element, 'energy': eee2, 'counts': smooth_spectrum_rebinned_noise}
+		
+		return output_spectrum
+	
 	except ValueError as e:
 		print(f"\nAn error has occured: {e}.")
 		return
@@ -279,7 +288,7 @@ def make_isotope_spectra(energy_edges, element, activity, time):
 	number_of_photons = intensity * activity * decays_per_second * time
 
 	# Makes a zero array with length of energy edges array -1
-	output_spectrum = np.zeros(len(energy_edges)-1)
+	output_spectrum = np.zeros(len(energy_edges) -1)
 
 	for i in range(len(energy)):
 		index = np.min(np.where(energy_edges > energy[i]))

@@ -2,13 +2,18 @@ import numpy as np
 import periodictable as pt
 import os
 import struct
+import pandas as pd
 
 compounds_info = {
-	'Polyimide': {
+	'Polyimide': { # C22H10N2O5
+		'compound': ['C', 'H', 'N', 'O'],
+		'quantity': [22, 10, 2, 5],
 		'atwt': 201,
 		'density': 1.51,
 		'atomic_number': ''},
 	'SiO': {
+		'compound': ['Si', 'O'],
+		'quantity': [1, 1],
 		'atwt': 44.09,
 		'density': 2.65,
 		'atomic_number': ''},
@@ -16,9 +21,9 @@ compounds_info = {
 
 def get_element_info(element): # this should get rid of compound and zcompound
 	
-
+	# Get the compound object from the periodictable module
 	try:
-		# Get the compound object from the periodictable module
+		
 		compound = getattr(pt, element)
 		# Get the atomic weight
 		atwt = compound.mass  # [amu]
@@ -26,23 +31,64 @@ def get_element_info(element): # this should get rid of compound and zcompound
 		density = compound.density  # [g/cm^3]
 		# Get the atomic number
 		atomic_number = compound.number 
+		
+		return atwt, density, atomic_number
 
+	# If the element is not found in the periodic table, try to get it from the dictionary
 	except AttributeError:
-		# If the element is not found in the periodic table, try to get it from the dictionary
+		
 		if element in compounds_info:
-			# Get the atomic weight
-			atwt = compounds_info[element]['atwt']  # [amu]
-			# Get the density
-			density = compounds_info[element]['density']  # [g/cm^3]
-			# Get the atomic number
-			atomic_number = compounds_info[element]['atomic_number']
+
+			if element == 'Pl':
+				compounds = compounds_info['Polyimide']['compound']
+				quantity = compounds_info['Polyimide']['quantity']
+				atomic_number_arrray = []
+
+				# get atomic number of each element in compound
+				for i in compounds:
+		
+					compound = getattr(pt, i)
+					atomic_number_arrray.append(compound.number)
+
+				# sum atomic numbers based on quantity
+				sum_atomic_number = 0
+				for i in range(len(quantity)):
+					sum_atomic_number += quantity[i]*atomic_number_arrray[i]
+
+				# 22 C, C-6 so f1 is 22*6 / sum
+				frac_electrons = []
+				for i in range(len(quantity)):
+					compound = getattr(pt, compounds[i])
+
+					frac_electrons = (quantity[i]*compound.number)/sum_atomic_number
+					frac_electrons.append(frac_electrons)
+
+				# do wiki forumla with each atomic number
+				effective_atomic_number = 0
+				for i in range(len(frac_electrons)):
+					effective_atomic_number += (
+						frac_electrons[i] * atomic_number_arrray[i] ** 2.94
+					)
+					
+				return atwt, density, effective_atomic_number**(1/2.94)
+			
+			# TODO: ADD else if for other compounds (SiO, etc.)
+   
+			else: 
+				atwt = compounds_info[element]['atwt']  # [amu]
+				# Get the density
+				density = compounds_info[element]['density']  # [g/cm^3]
+				# Get the atomic number
+				atomic_number = compounds_info[element]['atomic_number']
+
+				return atwt, density, atomic_number
 		else:
 			# If the element is not in the dictionary, return an error message
 			raise ValueError(f"The element '{element}' does not exist in the periodictable library or in the compounds_info dictionary.")
 
     
 	# Return the atomic weight and density
-	return atwt, density, atomic_number
+	
 
 def henke_array(element, density, graze_mrad=0):
 
@@ -54,7 +100,9 @@ def henke_array(element, density, graze_mrad=0):
 		root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))	
 		# Find henke.dat		
 		henke_data = f'{root_dir}/henke_model/henke.dat'
-
+		
+		print(f"STOOOOOOOOOOOOOOOOOP\n")
+		
 		with open(henke_data, 'rb') as file:
 			# Read the number and elements from the file
 			num_energies, num_elements = struct.unpack('ii', file.read(8))
@@ -101,7 +149,7 @@ def henke_array(element, density, graze_mrad=0):
 				pass
 
 	except FileNotFoundError:
-		print(f'Could not open file "henke.dat" or {system_henkedat_file}')
+		print(f'Could not open file "henke.dat" or {henke_data}')
 		raise
 
 	return f1, f2, energies, delta, beta, reflect

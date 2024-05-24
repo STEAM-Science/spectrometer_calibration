@@ -26,6 +26,7 @@ import utils.gaussian_fit as gauss
 import utils.plot as plot
 import utils.llsfit as fit
 import utils.classes as classes
+import utils.simulated as sim
 
 ## General functions
 def get_isotopes():
@@ -224,7 +225,7 @@ def calibration_points():
 					## Obtain region of interest from user using select_peak function from plot.py 
 
 					# Obtain fit gaussian parameters
-					gauss_params, params_covariance, int_counts, max_counts = plot.select_peak(binning, data, element)
+					gauss_params, params_covariance, int_counts, maxCounts = plot.select_peak(binning, data, element)
 
 					# Unpacking parameters
 					A, sigma, mean = gauss_params
@@ -240,7 +241,7 @@ def calibration_points():
 					## Step 5. Save the Gaussian fit parameters to an array (for single Gaussian)
 
 					# Add pair of calibration point to array with uncertainties
-					points.append(np.array([mean, mean_err, peak_energy, sigma, sigma_err, A, A_err, int_counts, max_counts]))
+					points.append(np.array([mean, mean_err, peak_energy, sigma, sigma_err, A, A_err, int_counts, maxCounts]))
 
 					# Iterate
 					nPeak += 1
@@ -256,8 +257,8 @@ def calibration_points():
 					print("\nFitting first peak in doublet: ")
 
 					# Obtain fit gaussian parameters
-					gauss_params_1, params_covariance_1, int_counts_1, x_coords_1, max_counts_1 = plot.select_peak(binning, data, element, doublet=True)
-					gauss_params_2, params_covariance_2, int_counts_2, x_coords_2, max_counts_2 = plot.select_peak(binning, data, element, doublet=True)
+					gauss_params_1, params_covariance_1, int_counts_1, x_coords_1, maxCounts_1 = plot.select_peak(binning, data, element, doublet=True)
+					gauss_params_2, params_covariance_2, int_counts_2, x_coords_2, maxCounts_2 = plot.select_peak(binning, data, element, doublet=True)
 
 					# Temporary variables
 					temp1_1, temp2_1, temp3_1 = gauss_params_1
@@ -326,8 +327,8 @@ def calibration_points():
 					## 	Step 5. Save the Gaussian fit parameters to an array (for double Gaussian)
 
 					# Add pair of calibration point to array with uncertainties
-					points.append(np.array([mean_1, mean_err_1, peak_energy_1, sigma_1, sigma_err_1, A_1, A_err_1, int_counts_1, max_counts_1]))
-					points.append(np.array([mean_2, mean_err_2, peak_energy_2, sigma_2, sigma_err_2, A_2, A_err_2, int_counts_2, max_counts_2]))
+					points.append(np.array([mean_1, mean_err_1, peak_energy_1, sigma_1, sigma_err_1, A_1, A_err_1, int_counts_1, maxCounts_1]))
+					points.append(np.array([mean_2, mean_err_2, peak_energy_2, sigma_2, sigma_err_2, A_2, A_err_2, int_counts_2, maxCounts_2]))
 
 					# Iterate
 					nPeak += 2
@@ -352,7 +353,7 @@ def calibration_points():
 				'AErr': points[6],
 				'ARErr': points[6]/points[5],
 				'intCounts': points[7],
-				'max_counts': points[8]
+				'maxCounts': points[8]
 			}
 
 			# Create pandas dataframe from dictionary
@@ -442,14 +443,14 @@ def create_calibration_curve():
 					E = df['E']
 					sigma = df['sigma']
 					int_counts = df['intCounts']
-					#max_counts = df['max_counts']
+					max_counts = df['maxCounts']
 					
 					# Combines arrays from all files and stores into class. For format information, see classes.py
 					combined_data.add_mus(isotope, mu)
 					combined_data.add_Es(isotope, E)
 					combined_data.add_sigmas(isotope, sigma)
 					combined_data.add_int_counts(isotope, int_counts)
-					#combined_data.add_max_counts(isotope, max_counts)
+					combined_data.add_maxCounts(isotope, max_counts)
 
 		## Step 3: Perform weighted fit using the combined data to get m and b
 
@@ -707,13 +708,13 @@ def determine_response(advance=None, calibration_points=None):
 
 	## Step 5. Save the resolution to a csv file
 	# Save detector response data to CSV file using create_csv function in files.py
-	files.create_csv(data, name, folder_path)
+	files.create_csv(response_dict, name, folder_path)
 	
 	print("\nComplete.")
 
 
 	### Asking user if they wish to proceed to the next calibration step
-	advance = input("Would you like to continue to the resolution (r) analysis? Leave blank to exit: ")
+	advance = input("Would you like to continue to the resolution analysis? y/n (Leave blank to exit): ")
 
 	# Removing case sensitivity of user input
 	advance_case = advance.lower()
@@ -722,7 +723,7 @@ def determine_response(advance=None, calibration_points=None):
 	while advance_case != "":
 
 		# Go to determine_resolution
-		if advance_case == "r":
+		if advance_case == "y":
 			return determine_resolution(advance_case, calibration_points)
 		else:
 			raise ValueError("Invalid input")
@@ -731,6 +732,9 @@ def determine_response(advance=None, calibration_points=None):
 
 def determine_resolution(advance=None, calibration_points=None):
 	
+## Here is a thought, could do something like i did for the thermal stuff, where they put all the stuff in the beginning
+## and then it goes through the whole process.
+
 	## Either continuning from previous function or starting from scratch
 	# Starting from scratch, uploading new file
 	if advance == None:
@@ -741,29 +745,33 @@ def determine_resolution(advance=None, calibration_points=None):
 
 		# Obtaining data from file
 		calibration_points = pd.read_csv(user_input, index_col=False)
+
+		
 	
 	# Continuing from previous function (create_calibration_curve or determine_response)
 	if advance == "r":
 		pass
 
-	print("Beginning resolution analysis...\n")
-
-	# Get root directory
-	root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))	
-
-	# Find NIST data		
-	nist_path = f'{root_dir}/nist_data/Spectral_Lines_{element}.csv'
 	
-	# Read NIST data
-	nist_x, nist_y = np.loadtxt(nist_path, delimiter=',').T
+	# Checking if the user wants to run a simulated spectrum or if they have the data already
+	simulated_input = input("Would you like to run a simulated spectrum? (y/n): ")
 
-	# Create mask to clip data to below 50 keV
-	mask = nist_x < 50
-	nist_x = nist_x[mask]
-	nist_y = nist_y[mask]
+	# Simulated spectrum using simulated.py functions
+	if simulated_input == "y":
+		expected_spectra = sim.smooth_isotope_spectrum()
+		#output_spectrum = {'element': element, 'energy': eee2, 'spectrum': smooth_spectrum_rebinned_noise}
+	
+	# Using expected spectra file (uploaded by user)
+	elif simulated_input == "n":
+		element = input("Please enter the element you are analyzing. Ex: Cs, Ba, Am, etc.: ")
+		expected_spectra_input = input("Expected spectrum file path: ")
+		expected_spectra_input = expected_spectra_input.replace('"', '')
 
-	# Recompose into matrix of coordinates
-	nist_coords = np.array([nist_x, nist_y]).T
+		# Obtaining data from file
+		expected_spectra = pd.read_csv(expected_spectra_input, index_col=False)
+
+	
+	print("Beginning resolution analysis...\n")
 
 	element_dict = {
 		'Am': [
@@ -785,16 +793,28 @@ def determine_resolution(advance=None, calibration_points=None):
 		],
 	}
 
-	max_counts = calibration_points['max_counts']
-	peaks = calibration_points['energy']
+	peaks = element_dict.get(element)
 
-	for i in range(len(max_counts)):
-		for j in range(len(element_dict[element])):
-			if peaks[i] == element_dict[element][j]['energy']:
-				element_dict[element][j]['max_counts'] 
-				max_counts[i]
+	# If the element exists in the dictionary
+	if peaks is not None:
+		for peak in peaks:
+			energy = peak['energy']
 
+			# Get the expected_count and max_count for this energy
+			expected_counts = expected_spectra[expected_spectra['energy'] == energy]['counts']
+			measured_counts = calibration_points[calibration_points['E'] == energy]['maxCounts']
 
+			if expected_counts is not None:
+				peak['expected_counts'] = expected_counts
+			if measured_counts is not None:
+				peak['measured_counts'] = measured_counts
+
+	
+
+	plt.plot(measured_counts, expected_counts)
+	plt.show()
+
+	
 
 
 def calibrate_spectrum():

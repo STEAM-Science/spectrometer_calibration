@@ -88,9 +88,9 @@ def main():
 		***Create this function: calibrate.determine_resolution()***
 
 		Step 1. Load file of expected spectrum from STEAM's IDL code and Gaussian fit file using function calibrate.determine_response()
-		Step 2. Pull max_counts from Gaussian fit file
-		Step 3. Plot max_counts vs expected_counts using plot.plot_data()
-		Step 4. Save the response to a csv file using the function files.create_csv()
+		Step 2. Pull maxCounts from Gaussian fit file
+		Step 3. Plot maxCounts vs expected_counts using plot.plot_data()
+		Step 4. Save the resolution to a csv file using the function files.create_csv()
 		Step 5. Save the plot to an image file using the function files.create_image()
 		
 		"""
