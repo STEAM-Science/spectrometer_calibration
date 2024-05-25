@@ -190,6 +190,10 @@ def smooth_isotope_spectrum():
 		resp_atten = instrument_response(eee_mean2, detector_select, filter_thick, filter_material)
 		response = np.append(response, resp_atten)
 
+		print(f'Length of response: {len(response)}')
+		print(response)
+		print(max(response))
+
 		# air_attenuation.pro
 		print("Calculating air attenuation...")
 		air_attenuation = [0]
@@ -336,6 +340,7 @@ def instrument_response(energy_centers, detector_select=0, filter_thick=None, fi
 			wv_besi, resp_besi = atten.diode_param(['Be', 'Al'], [be_thick*1e4, filt_thick*1e4], si_thick=si_thick*1e4, oxide_thick=70.)
 			resp_poly = 1.
 		elif filter_material == 'Pl':
+			#TODO: Check this
 			wv_besi, resp_besi = atten.diode_param(['Be'], [be_thick*1e4], si_thick=si_thick*1e4, oxide_thick=70.)
 			resp_poly = np.interp(wv_besi, polytran[0, :]*10, polytran[1, :]**filt_thick)
 		else:
@@ -344,6 +349,7 @@ def instrument_response(energy_centers, detector_select=0, filter_thick=None, fi
 
 		# Convert to cts/ph = (el/ph) / (keV / (keV / el))
 		resp_besi /= (a2kev/wv_besi)/kev_per_el
+		print(len(resp_besi))
 
 		# Interpolate response (cts/ph) at eee bins, zero the response below 0.5 keV (LLD)
 		resp = np.interp(energy_centers, a2kev/wv_besi, resp_besi*resp_poly)

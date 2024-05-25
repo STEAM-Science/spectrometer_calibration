@@ -4,6 +4,8 @@ import os
 import struct
 import pandas as pd
 
+import utils.read_henke as read_henke
+
 compounds_info = {
 	'Polyimide': { # C22H10N2O5
 		'compound': ['C', 'H', 'N', 'O'],
@@ -90,69 +92,43 @@ def get_element_info(element): # this should get rid of compound and zcompound
 	# Return the atomic weight and density
 	
 
-def henke_array(element, density, graze_mrad=0):
+def henke_array(element, density):
 
-    # Your code for handling different system files goes here
+	# Defining constants
+	AVOGADRO = 6.02204531e23  # Avogadro's number
+	HC = 12398.54  # Planck's constant times speed of light [eV*Angstrom]
+	RE = 2.817938070e-13  # Electron radius [cm]
 
 	try:
 		atwt, density, atomic_number = get_element_info(element)
 
-		root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))	
-		# Find henke.dat		
-		henke_data = f'{root_dir}/henke_model/henke.dat'
-		
-		print(f"STOOOOOOOOOOOOOOOOOP\n")
-		
-		with open(henke_data, 'rb') as file:
-			# Read the number and elements from the file
-			num_energies, num_elements = struct.unpack('ii', file.read(8))
-			energies = np.fromfile(file, dtype=np.float32, count=num_energies)
-			f1 = f2 = this_f1 = this_f2 = np.zeros(num_energies)
+		# Read the data from the file using read_henke.py to populate num_energies, energies, num_elements, f1 and f2
+		energies, f1, f2 = read_henke.getArrays() 
 
-			# header_offset = 4 * (2 + num_energies)
-			# maxz = len(atomic_number)
-			# for i in range(maxz):
-			# 	if atomic_number[i] > 0.:
-			# 		offset = header_offset + i * 2 * num_energies * 4
-			# 		file.seek(offset)
-			# 		this_f1 = np.fromfile(file, dtype=np.float32, count=num_energies)
-			# 		this_f2 = np.fromfile(file, dtype=np.float32, count=num_energies)
-			# 		this_f1 = this_f1.byteswap() if this_f1.dtype.byteorder == '<' else this_f1
-			# 		this_f2 = this_f2.byteswap() if this_f2.dtype.byteorder == '<' else this_f2
-			# 		f1 = f1 + z_array[i] * this_f1
-			# 		f2 = f2 + z_array[i] * this_f2
+		#Convert the lists to numpy arrays
+		energies = np.array(energies) # eV
+		f1 = np.array(f1) 
+		f2 = np.array(f2)
 
-			# Defining constants
-			AVOGADRO = 6.02204531e23  # Avogadro's number
-			HC = 12398.54  # Planck's constant times speed of light [eV*Angstrom]
-			RE = 2.817938070e-13  # Electron radius [cm]
+		# Calculate the number of moledules per cubic centimeter (if statment to avoid zero error)
+		if atwt != 0.0:
+			molecules_per_cc = density * AVOGADRO / atwt
+		else:
+			molecules_per_cc = 0.0
 
-			# Calculate the number of moledules per cubic centimeter (if statment to avoid zero error)
-			if atwt != 0.0:
-				molecules_per_cc = density * AVOGADRO / atwt
-			else:
-				molecules_per_cc = 0.0
+		wavelength = HC / energies
 
-			wavelength = HC / energies
+		# This constant has wavelength in Angstroms, and then they are converted to cm
+		constant = RE * (1.0e-16 * wavelength * wavelength) * molecules_per_cc / (2.0 * np.pi)
 
-			# This constant has wavelength in Angstroms, and then they are converted to cm
-			constant = RE * (1.0e-16 * wavelength * wavelength) * molecules_per_cc / (2.0 * np.pi)
+		delta = constant * f1
+		beta = constant * f2
 
-			delta = constant * f1[:len(constant)]
-			beta = constant * f2[:len(constant)]
-
-			if graze_mrad == 0:  # Assuming normal incidence
-				reflect = 1. + np.zeros(num_energies)
-			else:
-				# Calculate the reflectivity for a non-zero graze angle
-				#reflect = calculate_reflectivity(graze_mrad, delta, beta)
-				pass
-
-	except FileNotFoundError:
-		print(f'Could not open file "henke.dat" or {henke_data}')
+	except Exception as e:
+		print(f'ERROR: {e}')
 		raise
 
-	return f1, f2, energies, delta, beta, reflect
+	return f1, f2, energies, delta, beta
 
 
 def henke_t(element_name, density):
@@ -165,8 +141,8 @@ def henke_t(element_name, density):
 	atwt, density, atomic_number = get_element_info(element_name)
 	print(f'Information for {element_name}: {atwt:.4f} amu, {density:.4f} g/cm^3, {atomic_number}')
 
-	# Call the henke_array function to calculate f1, f2, energies, delta, beta, reflect
-	f1, f2, energies, delta, beta, reflect = henke_array(element_name, density)
+	# Call the henke_array function to calculate f1, f2, energies, delta, beta
+	f1, f2, energies, delta, beta = henke_array(element_name, density)
 
 	# Calculate the absorption 1/e and wavelength
 	mu = (1.238 / (energies*4*np.pi*beta) ) * 1e4  # convert to Angstoms
@@ -208,13 +184,13 @@ def diode_param(material, thickness, si_thick=50000, oxide_thick=70):
 		tname = ''
 		num = 0
 		el = ''
-		thick = 0.0
+		thick = 0.0 # Angstroms
 
 		# Loop over all materials
 		for k in range(len(material)):
 			# Get the current material and thickness
 			el = material[k].strip()
-			thick = thickness[k]
+			thick = thickness[k] * 10000 # convert microns to Angstroms
 
 			# Call the henke_t function to calculate wavelength and mu
 			wv, mu = henke_t(el, thick)
@@ -225,14 +201,14 @@ def diode_param(material, thickness, si_thick=50000, oxide_thick=70):
 
 			# Calculate the transmission
 			if num == 0:
-				trans = np.ones_like(wv)
-			trans *= np.exp(-1.0 * thick / mu)
+				trans1 = np.ones_like(wv)
+			trans1 = trans1 * np.exp(-1.0 * thick / mu)
 
 			num += 1
 
 		# Get the oxide transmission
 		wv, mu = henke_t(oxide_material, oxide_thick)
-		trans *= np.exp(-1.0 * oxide_thick / mu)
+		trans2 = trans1 * np.exp(-1.0 * oxide_thick / mu)
 
 		# Get the silicon absorption
 		wv, mu = henke_t('Si', si_thick)
@@ -240,7 +216,7 @@ def diode_param(material, thickness, si_thick=50000, oxide_thick=70):
 
 		# Calculate the number of electrons per each 3.65 eV of photon energy
 		factor = 6.624E-34 * 2.998E8 / 3.64 / 1E-10 / 1.602177E-19
-		current1 = trans * si_abs * factor / wv
+		current1 = trans2 * si_abs * factor / wv
 
 		w_qe = [0.10,  0.13,  0.17,  0.22,  0.28,  0.36,  0.46,  0.60, 
 			0.77,  1.00,  1.29,  1.66,  2.14,  2.77,  3.57,  4.61, 
@@ -269,7 +245,7 @@ def diode_param(material, thickness, si_thick=50000, oxide_thick=70):
 			1.08, 1.07, 1.03, 1.02, 0.96, 0.88, 0.79, 0.74, 0.69, 0.65, 0.62, 
 			0.57, 0.54, 0.51, 0.48, 0.47, 0.47, 0.39 ]
 
-		current2 = trans * si_abs * np.interp(wv, w_qe, s_qe)
+		current2 = trans2 * si_abs * np.interp(wv, w_qe, s_qe)
 
 		#current = current2
 		current = current1
