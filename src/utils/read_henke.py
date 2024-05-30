@@ -2,6 +2,7 @@ import os
 import numpy as np
 
 def getArrays():
+    num_energies = 0
     num_energies_to_read = 0
     num_to_read = 0
     energies = []
@@ -69,19 +70,28 @@ def getArrays():
                     energy = int.from_bytes(combinedBytes, "big")
                     print(energy)
                     energies.append(energy)
+                    if element_count == num_energies_to_read + 2:
+                        element_count = 0
 
-                #Here we will read in values into f1 and f2. f1 gets
-                if(total_count > num_energies_to_read and total_count <= num_to_read):
+                #Here we will read in values into f1. second set of 301 energies. we subtract to because we do not want to count first two energies as part of our total count
+                if(total_count > num_energies_to_read and total_count <= (num_energies_to_read*2) - 2):
                     element_count+=1
                     val = int.from_bytes(combinedBytes, "big")
+                    print("Element {num_element}, Appending {element} to f1".format(num_element = element_count, element = val), end="\n")
+                    f1.append(val) #if its odd we put it into f1
 
-                    #if it is an even element put it into f2
-                    if(element_count % 2 == 0):
-                        print("Element {num_element}, Appending {element} to f2".format(num_element = element_count, element = val), end="\n")
-                        f2.append(val)
-                    else:
-                        print("Element {num_element}, Appending {element} to f1".format(num_element = element_count, element = val), end="\n")
-                        f1.append(val) #if its odd we put it into f1
+                
+                    if total_count == (num_energies_to_read*2) - 2:
+                        element_count = 0
+                        print("======= BEGIN TO POPULATE F2 array ===============\n".format(count = total_count))
+                
+                # Here we will read in values to f2 the third set of 301 energies
+                if(total_count > (num_energies_to_read*2) and total_count <= (num_energies_to_read*3) - 2):
+                    element_count+=1
+                    val = int.from_bytes(combinedBytes, "big")
+                    print("Element {num_element}, Appending {element} to f2".format(num_element = element_count, element = val), end="\n")
+                    f2.append(val) #if its odd we put it into f1
+
 
 
                 # These are just so we can print and see where the energies and array values end
@@ -89,9 +99,9 @@ def getArrays():
                     element_count = 0
                     print("========== END OF Energies =================\n\n\n\n")
 
-                    print("======= BEGIN TO POPULATE F1 and F2 arrays ===============\n")
+                    print("======= BEGIN TO POPULATE F1 array ===============\n")
 
-                if num_to_read != 0 and total_count == num_to_read:
+                if num_to_read != 0 and total_count == (num_energies_to_read*3)+2:
                     total_count = 3
                     element_count = 0
                     print("============= END OF F1 and F2 ===================\n")
@@ -100,10 +110,21 @@ def getArrays():
                     # print(energies)
                     # print(f1)
                     # print(f2)
+
+                    print("====== ENERGIES =====")
+                    print(energies)
+                    print(len(energies))
+                    print("====== F1 =====")
+                    print(f1)
+                    print(len(f1))
+                    print("====== F2 =====")
+                    print(f2)
+                    print(len(f2))
+
                     return energies, f1, f2
             
     except FileNotFoundError:
-        print(f'Could not open file "henke.dat" or {henke_data}')
+        print(f'Could not open file "henke.dat". Check that the file exists in the correct directory (\henke_model).')
         raise
             
           

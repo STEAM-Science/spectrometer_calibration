@@ -43,6 +43,7 @@ root
 │   │   ├───cCurves
 │   │   ├───resolution
 │   │   ├───response
+├───henke_model
 ├───environment
 │   ├───environment.yml
 │   ├───requirements.txt
@@ -64,7 +65,7 @@ main.py
 		- `cCurves`: contains the calibration curve results
 		- `resolution`: contains the resolution results
 		- `response`: contains the response results
-
+- `henke_model`: 
 - `environment`: This directory contains the environment files
 	- `environment.yml`: contains the environment file for Anaconda
 	- `requirements.txt`: contains the environment file for pip

@@ -6,8 +6,12 @@ import pandas as pd
 
 import utils.read_henke as read_henke
 
+# TODO: Remove this print statement
+np.set_printoptions(edgeitems=5, threshold=10)
+
+
 compounds_info = {
-	'Polyimide': { # C22H10N2O5
+	'Pl': { # Polyimide C22H10N2O5
 		'compound': ['C', 'H', 'N', 'O'],
 		'quantity': [22, 10, 2, 5],
 		'atwt': 201,
@@ -22,75 +26,77 @@ compounds_info = {
 	}
 
 def get_element_info(element): # this should get rid of compound and zcompound
-	
+	z_array = np.zeros(92)
 	# Get the compound object from the periodictable module
 	try:
 		
+		# Get the compounds and their quantities for the element from the dictionary
 		compound = getattr(pt, element)
-		# Get the atomic weight
 		atwt = compound.mass  # [amu]
-		# Get the density
 		density = compound.density  # [g/cm^3]
-		# Get the atomic number
 		atomic_number = compound.number 
+
+		z_array[compound.number - 1] = 1
 		
-		return atwt, density, atomic_number
+		# Return the atomic weight and density
+		return atwt, density, atomic_number, z_array
 
 	# If the element is not found in the periodic table, try to get it from the dictionary
 	except AttributeError:
 		
+		# If the input is in the compound dictionary, get the effective atomic number, atomic weight, and density
 		if element in compounds_info:
 
-			if element == 'Pl':
-				compounds = compounds_info['Polyimide']['compound']
-				quantity = compounds_info['Polyimide']['quantity']
-				atomic_number_arrray = []
-
-				# get atomic number of each element in compound
-				for i in compounds:
-		
-					compound = getattr(pt, i)
-					atomic_number_arrray.append(compound.number)
-
-				# sum atomic numbers based on quantity
-				sum_atomic_number = 0
-				for i in range(len(quantity)):
-					sum_atomic_number += quantity[i]*atomic_number_arrray[i]
-
-				# 22 C, C-6 so f1 is 22*6 / sum
-				frac_electrons = []
-				for i in range(len(quantity)):
-					compound = getattr(pt, compounds[i])
-
-					frac_electrons = (quantity[i]*compound.number)/sum_atomic_number
-					frac_electrons.append(frac_electrons)
-
-				# do wiki forumla with each atomic number
-				effective_atomic_number = 0
-				for i in range(len(frac_electrons)):
-					effective_atomic_number += (
-						frac_electrons[i] * atomic_number_arrray[i] ** 2.94
-					)
-					
-				return atwt, density, effective_atomic_number**(1/2.94)
+			# Get the compounds and their quantities for the element from the dictionary
+			compounds = compounds_info[element]['compound']
+			quantity = compounds_info[element]['quantity']
+			density = compounds_info[element]['density']
 			
-			# TODO: ADD else if for other compounds (SiO, etc.)
-   
-			else: 
-				atwt = compounds_info[element]['atwt']  # [amu]
-				# Get the density
-				density = compounds_info[element]['density']  # [g/cm^3]
-				# Get the atomic number
-				atomic_number = compounds_info[element]['atomic_number']
 
-				return atwt, density, atomic_number
+			# Calculate the effective atomic number using the compounds and their quantities
+			sum_atwt, effective_atomic_number, z_array = calculate_effective_atomic_number(compounds, quantity)
+
+			
+			
+			# Return the atomic weight and density
+			return sum_atwt, density, effective_atomic_number, z_array
+			
 		else:
 			# If the element is not in the dictionary, return an error message
 			raise ValueError(f"The element '{element}' does not exist in the periodictable library or in the compounds_info dictionary.")
 
-    
-	# Return the atomic weight and density
+def calculate_effective_atomic_number(compounds, quantity):
+	# Initialize variables
+	sum_atomic_number = 0
+	sum_atwt = 0
+	frac_electrons = []
+	effective_atomic_number = 0
+	z_array = np.zeros(92)
+
+	# Loop over each compound once
+	for i in range(len(compounds)):
+		# Get the PeriodicTable object for the compound
+		compound = getattr(pt, compounds[i])
+		atomic_number = compound.number
+		atwt = compound.mass
+		
+		z_array[atomic_number - 1] = quantity[i]
+
+		# Calculate sum of atomic numbers based on quantity
+		sum_atomic_number += quantity[i] * atomic_number
+		sum_atwt += quantity[i] * atwt
+
+		# Store atomic numbers for later use
+		frac_electrons.append((quantity[i] * atomic_number))
+
+	# Normalize frac_electrons and calculate effective_atomic_number
+	frac_electrons = [frac / sum_atomic_number for frac in frac_electrons]
 	
+	for i in range(len(frac_electrons)):
+		# The formula for effective atomic number is the sum of (fraction of electrons * atomic number^2.94) for all compounds
+		effective_atomic_number += frac_electrons[i] * (frac_electrons[i] * sum_atomic_number) ** 2.94
+
+	return sum_atwt, effective_atomic_number**(1/2.94), z_array
 
 def henke_array(element, density):
 
@@ -100,15 +106,111 @@ def henke_array(element, density):
 	RE = 2.817938070e-13  # Electron radius [cm]
 
 	try:
-		atwt, density, atomic_number = get_element_info(element)
+		atwt, density, atomic_number, z_array = get_element_info(element)
 
-		# Read the data from the file using read_henke.py to populate num_energies, energies, num_elements, f1 and f2
-		energies, f1, f2 = read_henke.getArrays() 
+		root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-		#Convert the lists to numpy arrays
-		energies = np.array(energies) # eV
-		f1 = np.array(f1) 
-		f2 = np.array(f2)
+		# Initialize lists to store energies, f1, and f2 values
+		energies_interp = np.linspace(10., 30000., num=301) # [eV]
+		f1 = np.array([])
+		f2 = np.array([])
+
+		# Check if the element is in the compounds_info dictionary
+		if element in compounds_info:
+			
+			print(f'Element {element} is in compounds_info dictionary')
+			
+			# Get the data file for the each component in the compound
+			i = 0
+			
+			while i < len(compounds_info[element]['compound']):
+				# Get the component and quantity from compounds_info dictionary
+				component = compounds_info[element]['compound'][i]
+				quantity = compounds_info[element]['quantity'][i]
+
+				# Get data file	for each element
+				element_data = f'{root_dir}/henke_model/atomic_scattering/{component.lower()}.nff'
+				
+				
+				# Open the data file and read the lines
+				with open(element_data, 'r') as data:
+					lines = data.readlines()
+
+					# Skip first row
+					data_lines = lines[1:]
+
+					# Process the data
+					# f1 * quantity, then f1 + f1
+					f1_values = np.array([])
+					energies = np.array([])
+					f2_values = np.array([])
+
+					for line in data_lines:
+						energy, f1_value, f2_value = line.strip().split('\t')
+
+						f1_values = np.append(f1_values, float(f1_value) * quantity)
+						energies = np.append(energies, float(energy))
+						f2_values = np.append(f2_values, float(f2_value) * quantity)
+
+					if i == 0:
+						for x in range(len(energies_interp) -1):
+							f1_interp = np.interp(energies_interp[x], energies, f1_values)
+							f2_interp = np.interp(energies_interp[x], energies, f2_values)
+				
+							f1 = np.append(f1, f1_interp)
+							f2 = np.append(f2, f2_interp)
+
+						f1 = np.append(f1, f1_values[-1])
+						f2 = np.append(f2, f2_values[-1])
+
+					else:
+						for x in range(len(energies_interp) -1):
+							f1_interp = np.interp(energies_interp[x], energies, f1_values)
+							f2_interp = np.interp(energies_interp[x], energies, f2_values)
+
+							f1 = np.add(f1, float(f1_interp))
+							f2 = np.add(f2, float(f2_interp))
+
+				i += 1
+
+		
+		elif not element in compounds_info:
+			# Get data file	for each element
+			element_data = f'{root_dir}/henke_model/atomic_scattering/{element.lower()}.nff'
+			
+			# Open the data file and read the lines
+			with open(element_data, 'r') as data:
+				lines = data.readlines()
+
+				# Skip first row
+				data_lines = lines[1:]
+
+				f1_values = np.array([])
+				energies = np.array([])
+				f2_values = np.array([])
+				# Process the data
+				for line in data_lines:
+					energy, f1_value, f2_value = line.strip().split('\t')
+
+					f1_values = np.append(f1_values, float(f1_value))
+					energies = np.append(energies, float(energy))
+					f2_values = np.append(f2_values, float(f2_value))
+
+				for x in range(len(energies_interp) -1):
+					f1_interp = np.interp(energies_interp[x], energies, f1_values)
+					f2_interp = np.interp(energies_interp[x], energies, f2_values)
+				
+					f1 = np.append(f1, f1_interp)
+					f2 = np.append(f2, f2_interp)
+
+				f1 = np.append(f1, f1_values[-1])
+				f2 = np.append(f2, f2_values[-1])
+			print("Done")
+		else:
+			raise ValueError(f"The element '{element}' does not exist in the periodictable library or in the compounds_info dictionary. If it is a compound, please add it to the compounds_info dictionary.")
+		
+		# # Convert the energies, f1, and f2 lists to numpy arrays
+		# energies = np.array(energies)
 
 		# Calculate the number of moledules per cubic centimeter (if statment to avoid zero error)
 		if atwt != 0.0:
@@ -116,20 +218,26 @@ def henke_array(element, density):
 		else:
 			molecules_per_cc = 0.0
 
-		wavelength = HC / energies
+		wavelength = HC / energies_interp # [Angstroms]
 
-		# This constant has wavelength in Angstroms, and then they are converted to cm
+		# wavelength here is converted to cm here to match the units of the electron radius
 		constant = RE * (1.0e-16 * wavelength * wavelength) * molecules_per_cc / (2.0 * np.pi)
 
 		delta = constant * f1
 		beta = constant * f2
+		# Debug print
+		print("\nThis is the output from the henke_array function")
+		print("energies (eV)", energies_interp)
+		print("f1", f1)
+		print("f2", f2)
+		print("delta (dimensionless)", delta)
+		print("beta (dimensionless)", beta)
+
+		return f1, f2, energies_interp, delta, beta
 
 	except Exception as e:
 		print(f'ERROR: {e}')
 		raise
-
-	return f1, f2, energies, delta, beta
-
 
 def henke_t(element_name, density):
 
@@ -138,16 +246,20 @@ def henke_t(element_name, density):
 	print('    where mu = 1/e absorption length in Angstroms')
 
 	# Get compound properties from get_element_info function
-	atwt, density, atomic_number = get_element_info(element_name)
+	atwt, density, atomic_number, z_array = get_element_info(element_name)
 	print(f'Information for {element_name}: {atwt:.4f} amu, {density:.4f} g/cm^3, {atomic_number}')
 
 	# Call the henke_array function to calculate f1, f2, energies, delta, beta
 	f1, f2, energies, delta, beta = henke_array(element_name, density)
 
 	# Calculate the absorption 1/e and wavelength
-	mu = (1.238 / (energies*4*np.pi*beta) ) * 1e4  # convert to Angstoms
+	mu = (1.238 / (energies*4*np.pi*beta) ) * 1e4  # convert from microns to Angstroms
 	wavelength = 12397 / energies  # convert to wavelength (Angstroms)
 	
+	#Debug print
+	print("\nThis is the output from the henke_t function")
+	print("wavelength (Angstroms)", wavelength)
+	print("mu (1/Angstroms)", mu)
 
 	return wavelength, mu
 
@@ -184,13 +296,13 @@ def diode_param(material, thickness, si_thick=50000, oxide_thick=70):
 		tname = ''
 		num = 0
 		el = ''
-		thick = 0.0 # Angstroms
+		thick = 0.0 # input is microns, convert to Angstroms
 
 		# Loop over all materials
 		for k in range(len(material)):
 			# Get the current material and thickness
 			el = material[k].strip()
-			thick = thickness[k] * 10000 # convert microns to Angstroms
+			thick = thickness[k]
 
 			# Call the henke_t function to calculate wavelength and mu
 			wv, mu = henke_t(el, thick)
@@ -214,7 +326,7 @@ def diode_param(material, thickness, si_thick=50000, oxide_thick=70):
 		wv, mu = henke_t('Si', si_thick)
 		si_abs = 1.0 - np.exp(-1.0 * si_thick / mu)
 
-		# Calculate the number of electrons per each 3.65 eV of photon energy
+		# Calculate the number of electrons per each 3.64 eV of photon energy
 		factor = 6.624E-34 * 2.998E8 / 3.64 / 1E-10 / 1.602177E-19
 		current1 = trans2 * si_abs * factor / wv
 
@@ -249,6 +361,12 @@ def diode_param(material, thickness, si_thick=50000, oxide_thick=70):
 
 		#current = current2
 		current = current1
+
+		# Debug print
+		print("\nThis is the output from the diode_param function")
+		print("thickness (Angstroms):", thick)
+		print("trans2 (dimensionless)",trans2)
+		print("current (dimensionless)", current)
 
 		return wv, current
 

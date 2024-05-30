@@ -225,9 +225,9 @@ def smooth_isotope_spectrum():
 		
 		print(len(smooth_spectrum_rebinned))
 
-		for x in response:
-			if x != 0:
-				raise ValueError("Response is zero, damn")
+		# for x in response:
+		# 	if x != 0:
+		# 		raise ValueError("Response is zero, damn")
 
 		smooth_spectrum_rebinned = smooth_spectrum_rebinned*response
 		# Add Poisson noise
@@ -331,17 +331,18 @@ def instrument_response(energy_centers, detector_select=0, filter_thick=None, fi
 		filt_dens = be_dens
 
 	# SDD
-	if detector_select == 0:  
+	if detector_select == 0:
 		be_thick = 15.  # micron
 		filt_thick = filter_thick if filter_thick is not None else 0.  # micron
 		resolution = 0.15  # keV FWHM
 
 		if filter_material == 'Al':
+			# diode param thickness input is converted to Angstroms
 			wv_besi, resp_besi = atten.diode_param(['Be', 'Al'], [be_thick*1e4, filt_thick*1e4], si_thick=si_thick*1e4, oxide_thick=70.)
 			resp_poly = 1.
 		elif filter_material == 'Pl':
-			#TODO: Check this
-			wv_besi, resp_besi = atten.diode_param(['Be'], [be_thick*1e4], si_thick=si_thick*1e4, oxide_thick=70.)
+			#TODO: Add Pl to the diode_param function
+			wv_besi, resp_besi = atten.diode_param(['Be', 'Pl'], [be_thick*1e4, filt_thick*1e4], si_thick=si_thick*1e4, oxide_thick=70.)
 			resp_poly = np.interp(wv_besi, polytran[0, :]*10, polytran[1, :]**filt_thick)
 		else:
 			wv_besi, resp_besi = atten.diode_param(['Be'], [(be_thick+filt_thick)*1e4], si_thick=si_thick*1e4, oxide_thick=70.)
