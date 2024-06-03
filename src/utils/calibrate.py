@@ -40,17 +40,17 @@ def get_isotopes():
 
 	user_isotopes = []
 
-	user_input = input("Input isotopes to fit (leave blank to quit): ")
+	user_input = input("Input isotopes to fit (leave blank to quit): ").capitalize()
 
 	while user_input != "":
 		user_isotopes.append(user_input)
-		user_input = input("Input isotopes to fit (leave blank to quit): ")
+		user_input = input("Input isotopes to fit (leave blank to quit): ").capitalize()
 	
 	print("You entered the following isotopes:", ', '.join(user_isotopes))
 	
 	return user_isotopes
 
-def getNumericalInput(text):
+def get_numerical_input(text):
 	"""
 	Prompts the user to input a numerical value and returns it as a float.
 
@@ -82,7 +82,7 @@ def getNumericalInput(text):
 
 ### Calibration functions
 
-def calibration_points():
+def calibration_points(simulated_data = None, element = None):
 	"""
 	Select regions of interest in a spectrum and fit Gaussian curves to them.
 	The results from the Gaussian fit are saved as a CSV file.
@@ -99,16 +99,20 @@ def calibration_points():
 	## Step 1. Choose a folders or files containing calibration points using the function spectrum.process_spectrum()
 
 	# Load selected file(s) using functions from spectrum.py
-	spectral_data = spectrum.process_spectrum()
+	if simulated_data == None:
+		spectral_data = spectrum.process_spectrum()
 
-	# Number of files to process
-	num_items_to_process = len(spectral_data)
+		# Number of files to process
+		num_items_to_process = len(spectral_data)
 
-	# Iterator to track progress
-	total_items_processed = 0
+		# Iterator to track progress
+		total_items_processed = 0
 
-	# Get folder path from user (where results will be saved)
-	folder_path = files.get_folder_path()
+		# Get folder path from user (where results will be saved)
+		folder_path = files.get_folder_path()
+
+	else: 
+		spectral_data = spectral_data
 
 	## Step 2. Read the spectrum data from the file(s) 
 	
@@ -118,9 +122,13 @@ def calibration_points():
 		# Iterating through all files in the list may raise an error or exception. To ensure the user does not have
 		# to start over, the program will continue to iterate through the list even if an error is raised.
 		try:
-			## Asks user which element is being calibrated
-			user_input = input("What element is being calibrated?: ")
-			element = user_input.capitalize()
+			if element == None:
+				## Asks user which element is being calibrated
+				user_input = input("What element is being calibrated?: ")
+				element = user_input.capitalize()
+			
+			else:
+				element = element
 
 			# Obtain data file(s) from list (stored in a class)
 			data = data_processed.data
@@ -183,7 +191,7 @@ def calibration_points():
 			# Get input points from user (click 2 points on the display)
 			num_peaks = 0
 			while num_peaks < 1:
-				num_peaks = int(getNumericalInput("Input number of peaks to fit: "))
+				num_peaks = int(get_numerical_input("Input number of peaks to fit: "))
 
 			## Create list to store calibration points
 			points = []
@@ -217,7 +225,7 @@ def calibration_points():
 				plt.show()
 
 				## Get input of peak index from NIST data
-				peak_index = int(getNumericalInput("Input index of NIST peak fo fit (enter 999 for double peak): "))
+				peak_index = int(get_numerical_input("Input index of NIST peak fo fit (enter 999 for double peak): "))
 
 				# Check if single peak
 				if peak_index != 999:
@@ -251,8 +259,8 @@ def calibration_points():
 					print("\nFitting a Gaussian doublet. Ensure you go from left to right!")
 
 					# Get peak indexes
-					peak_1 = int(getNumericalInput('Input index of lower energy NIST peak in doublet:  '))
-					peak_2 = int(getNumericalInput('Input index of higher energy NIST peak in doublet: '))
+					peak_1 = int(get_numerical_input('Input index of lower energy NIST peak in doublet:  '))
+					peak_2 = int(get_numerical_input('Input index of higher energy NIST peak in doublet: '))
 
 					print("\nFitting first peak in doublet: ")
 
@@ -356,6 +364,9 @@ def calibration_points():
 				'maxCounts': points[8]
 			}
 
+			if simulated_data != None:
+				return points_dict
+
 			# Create pandas dataframe from dictionary
 			df = pd.DataFrame.from_dict(points_dict)
 
@@ -385,8 +396,7 @@ def calibration_points():
 		finally:
 
 			# Print progress
-			print(f"{total_items_processed} of {num_items_to_process} files processed.")
-
+			print(f"{total_items_processed} of {num_items_to_process} files processed.\n")
 	return
 
 def create_calibration_curve():
@@ -403,18 +413,18 @@ def create_calibration_curve():
 	"""
 
 	## Step 1: Get calibration points from each file
+
+	
 	# Getting which isotopes were used in the calibration from user
 	isotopes = get_isotopes()
 
-	user_input = input("Do you want to process a folder (f) or individual files (i)?: ")
+	user_input = input("Do you want to process a folder (f) or individual files (i)?: ").lower()
 	
-	# Removing case sensitivity of user input
-	user_input_case = user_input.lower()
 	
 	# Load files or folder(s) based on user input
-	if user_input_case == "f":
+	if user_input == "f":
 		calibration_points_files = files.load_folder()
-	elif user_input_case == "i":
+	elif user_input == "i":
 		calibration_points_files = files.load_files()
 	else: 
 		raise ValueError("Invalid input")
@@ -443,14 +453,14 @@ def create_calibration_curve():
 					E = df['E']
 					sigma = df['sigma']
 					int_counts = df['intCounts']
-					max_counts = df['maxCounts']
+					#max_counts = df['maxCounts']
 					
 					# Combines arrays from all files and stores into class. For format information, see classes.py
 					combined_data.add_mus(isotope, mu)
 					combined_data.add_Es(isotope, E)
 					combined_data.add_sigmas(isotope, sigma)
 					combined_data.add_int_counts(isotope, int_counts)
-					combined_data.add_maxCounts(isotope, max_counts)
+					#combined_data.add_max_counts(isotope, max_counts)
 
 		## Step 3: Perform weighted fit using the combined data to get m and b
 
@@ -458,11 +468,15 @@ def create_calibration_curve():
 		mu_values = [x[1] for x in combined_data.mu]
 		E_values = [x[1] for x in combined_data.E]
 		sigma_values = [x[1] for x in combined_data.sigma]
+		int_counts_values = [x[1] for x in combined_data.int_counts]
+		#max_counts_values = [x[1] for x in combined_data.max_counts]
 
 		# Converting lists to arrays
 		mu_array = np.concatenate(np.array(mu_values, dtype=object))
 		E_array = np.concatenate(np.array(E_values, dtype=object))
 		sigma_array = np.concatenate(np.array(sigma_values, dtype=object))
+		int_counts_array = np.concatenate(np.array(int_counts_values, dtype=object))
+		#max_counts_array = np.concatenate(np.array(max_counts_values, dtype=object))
 
 		# Performing weighted fit using functions from llsfit.py
 		m = fit.m_weighted(mu_array, E_array, sigma_array)
@@ -479,6 +493,7 @@ def create_calibration_curve():
 		# Printing results
 		print(f'R-squared = {R_sq:.4f}')
 
+
 		## From user, getting name of plot/files and folder path to save
 		name = input("Input name of calibration curve plot: ")
 		folder_path = files.get_folder_path()
@@ -486,7 +501,7 @@ def create_calibration_curve():
 		
 		# Step 4: Plot the combined data using x=E, y=mu and create a legend for each isotope
 
-		plt.clf()
+		#plt.clf()
 
 		# Define markers and colors
 		#markers = ['o', 's', '^', 'v', '*']
@@ -536,7 +551,7 @@ def create_calibration_curve():
 
 		## Step 6: Display and save plot as png.
 		# Set plot properties
-		#plt.title(f'{name} Calibration Curve')
+		plt.title(f'{name} Calibration Curve')
 		plt.xlabel('MCA channel')
 		plt.ylabel('Energy (keV)')
 		plt.xlim(0, 1023)
@@ -549,6 +564,8 @@ def create_calibration_curve():
 		plt.show()
 
 		plt.figure()
+
+		all_residuals = []
 		# Iterate through all isotopes
 		for isotope in isotopes:
 
@@ -571,32 +588,40 @@ def create_calibration_curve():
 						# Residuals
 						# Energy - (m*counts + b)
 						residuals = isotope_E_data - (m*isotope_mu_data + b)
+						all_residuals.append(residuals)
 
 						residual_errors = np.std(residuals)
 
-						plt.errorbar(range(len(residuals)), residuals, yerr=residual_errors, fmt='o')
-		
-			#plt.title(f'{name} Calibration Curve Residuals')
-			plt.axhline(0, color='k', linestyle='--')
-			plt.xlabel('MCA channel')
-			plt.ylabel('Residuals')
-			plt.xlim(0, 1023)
-			plt.legend()
+						plt.errorbar(range(len(residuals)), residuals, yerr=residual_errors, fmt='o', ecolor='black', label=isotope)
 
-			files.create_image(name + '_residuals', folder_path)
+		# Set the limits of x and y axis
+		xmin, xmax = min(range(len(residuals))), max(range(len(residuals)))  # range of x-axis
+		ymin, ymax = min(residuals), max(residuals)  # range of y-axis
 
-			plt.show()
+		# You can add/subtract a value to/from min and max for some padding
+		padding = 1
+		plt.xlim(xmin - padding, xmax + padding)
+		plt.ylim(ymin - padding, ymax + padding)			
+	
+		plt.title(f'{name} Calibration Curve Residuals')
+		plt.axhline(0, color='k', linestyle='--')
+		plt.xlabel('MCA channel')
+		plt.ylabel('Residuals')
+		#plt.xlim(0, 1023)
+		plt.legend()
 
+		files.create_image(name + '_residuals', folder_path)
 
+		plt.show()
 
 		## Step 7: Save combined data and fit results as csv
 		# Creating dictionary to store combined data, without isotope information
 		combined_dict = {
 			'mu': mu_array,
 			'E': E_array,
-			'sigma': sigma_array
-			#'int_counts': int_counts_array,
-			#max_counts = max_counts_array
+			'sigma': sigma_array,
+			'int_counts': int_counts_array,
+			#'max_counts': max_counts_array
 		}
 
 		# Creating dictionary to store fit results
@@ -610,7 +635,7 @@ def create_calibration_curve():
 		
 		# Create pandas dataframe from dictionary
 		combined_df = pd.DataFrame.from_dict(combined_dict)
-		calibration_df = pd.DataFrame.from_dict(calibration_dict, orient='index', columns=['value'])
+		calibration_df = pd.DataFrame.from_dict(calibration_dict)
 		
 		# Save dataframe to CSV file using create_csv function in files.py
 		csv_combined = files.create_csv(combined_df, name +'_points', folder_path)
@@ -618,30 +643,13 @@ def create_calibration_curve():
 
 		### End of function
 		print("\nCalibration complete.")
-
-		### Asking user if they wish to proceed to the next calibration step
-		advance = input("Would you like to continue to the resolution (r) or response (rp) analysis? Leave blank to exit: ")
-
-		# Removing case sensitivity of user input
-		advance_case = advance.lower()
-
-		## If user wishes to continue to the next step, call the next function (determine_resolution)
-		while advance_case != "":
-
-			# Go to determine_resolution
-			if advance_case == "r":
-				return #determine_resolution(advance_case, calibration_points)
-			elif advance_case == "rp":
-				return determine_response(advance_case, calibration_df)
-			else:
-				raise ValueError("Invalid input")
 		
 	except Exception as e:
 		print(f'Error Message: {e}') 
 
-def determine_response(advance=None, calibration_points=None):
+def determine_resolution():
 	"""
-	Determines the detector response by analyzing the Full Width Half Max (FWHM) and Energy (E) of the calibration points.
+	Determines the detector resolution by analyzing the Full Width Half Max (FWHM) and Energy (E) of the calibration points.
 	Saves the detector response data to a CSV file and displays a plot of FWHM vs E.
 
 	Step 1. Load a file(s) containing Gaussian fit parameters
@@ -653,36 +661,33 @@ def determine_response(advance=None, calibration_points=None):
 
 	## Step 1. Load a file(s) containing Gaussian fit parameters
 
-	# Either continuning from previous function or starting from scratch
-	# If starting from scratch, uploading new file
-	if advance == None:
+	# Getting user input for calibration curve file path
+	print("\nOnly upload one file containing calibration curve points")
+	user_input = input("Calibration curve points file path: ")
 
-		# Getting user input for calibration curve file path
-		print("Only upload one file containing calibration curve points")
-		user_input = input("Calibration curve points file path: ")
+	# Removing quotes from user input
+	user_input = user_input.replace('"', '')
 
-		# Removing quotes from user input
-		user_input = user_input.replace('"', '')
-
-		# Obtain data
-		calibration_points = pd.read_csv(user_input, index_col=False) 
-	
-	# Continuing from previous function (create_calibration_curve or determine_resolution)
-	if advance == "rp":
-		pass
-		
+	# Obtain data
+	calibration_points = pd.read_csv(user_input, index_col=False) 
 
 	print("Beginning detector response analysis...\n")
 	
 	## Step 2. Select sigmas from data and determine response Full Width Half Max (FWHM)
 	# Calculating Full Width Half Max (FWHM)
-	fwhm = calibration_points['sigma'] * 2.355
-	E = calibration_points['E']
+	fwhm = np.array(calibration_points['sigma']) * 2.355
+	E = np.array(calibration_points['E'])
+
+	# Calculate average FWHM and its uncertainty
+	fwhm_avg = np.mean(fwhm)
+	fwhm_err = np.std(fwhm)
 
 	## Creating a dictionary to store detector response data
-	response_dict = {
+	resolution_dict = {
 		'E (keV)': E,
-		'FWHM (keV)': fwhm
+		'FWHM (keV)': fwhm,
+		'FWHM_avg (keV)': fwhm_avg,
+		'FWHM_err (keV)': fwhm_err
 	}
 
 	## Step 3. Plot sigmas vs energy
@@ -694,128 +699,78 @@ def determine_response(advance=None, calibration_points=None):
 	folder_path = files.get_folder_path()
 
 	# Plot properties
-	plt.title(f'{name} Response')
+	plt.title(f'{name} Resolution')
 	plt.xlabel('Energy (keV)')
 	plt.ylabel('FWHM (keV)')
+	#plt.text(f'Average FWHM = {fwhm_avg:.4f} keV± {fwhm_err:.4f}', verticalalignment='bottom')
 
 	## Step 4. Save the plot to an image file
 	# Save figure using create_image function in files.py
 	files.create_image(name, folder_path)
 
 	# Display plot
-	print("\nDisplaying detector response...")
-	plt.show()
+	print("\nDisplaying detector resolution...")
+	print("Close the plot to continue.")
 
+	plt.show()
+	
 	## Step 5. Save the resolution to a csv file
 	# Save detector response data to CSV file using create_csv function in files.py
-	files.create_csv(response_dict, name, folder_path)
+	df_resolution = pd.DataFrame.from_dict(resolution_dict)
+	csv_resolution = files.create_csv(df_resolution, name, folder_path)
 	
-	print("\nComplete.")
+	print("\nResolution analysis complete.")
 
 
-	### Asking user if they wish to proceed to the next calibration step
-	advance = input("Would you like to continue to the resolution analysis? y/n (Leave blank to exit): ")
-
-	# Removing case sensitivity of user input
-	advance_case = advance.lower()
-
-	# If user wishes to continue to the next step, call the next function (determine_resolution)
-	while advance_case != "":
-
-		# Go to determine_resolution
-		if advance_case == "y":
-			return determine_resolution(advance_case, calibration_points)
-		else:
-			raise ValueError("Invalid input")
-	return
-
-
-def determine_resolution(advance=None, calibration_points=None):
+def determine_response():
 	
 ## Here is a thought, could do something like i did for the thermal stuff, where they put all the stuff in the beginning
 ## and then it goes through the whole process.
 
-	## Either continuning from previous function or starting from scratch
-	# Starting from scratch, uploading new file
-	if advance == None:
-		# Asking user for calibration curve file path
-		print("Please only upload one file containing calibration curve points")
-		user_input = input("Calibration curve points file path: ")
-		user_input = user_input.replace('"', '')
+# relationship between the measured count rate and the actual rate
+	dead_time = 2.4 * 10**-6 # seconds
 
-		# Obtaining data from file
-		calibration_points = pd.read_csv(user_input, index_col=False)
+	# Get the spectral data from the user
+	isotopes = get_isotopes()
 
-		
+	print("\nPlease upload the measured spectrum files for all isotopes used in calibration.")
+
+	user_input = input("Do you want to process a folder (f) or individual files (i)?: ").lower()
 	
-	# Continuing from previous function (create_calibration_curve or determine_response)
-	if advance == "r":
-		pass
-
-	
-	# Checking if the user wants to run a simulated spectrum or if they have the data already
-	simulated_input = input("Would you like to run a simulated spectrum? (y/n): ")
-
-	# Simulated spectrum using simulated.py functions
-	if simulated_input == "y":
-		expected_spectra = sim.smooth_isotope_spectrum()
-		#output_spectrum = {'element': element, 'energy': eee2, 'spectrum': smooth_spectrum_rebinned_noise}
-	
-	# Using expected spectra file (uploaded by user)
-	elif simulated_input == "n":
-		element = input("Please enter the element you are analyzing. Ex: Cs, Ba, Am, etc.: ")
-		expected_spectra_input = input("Expected spectrum file path: ")
-		expected_spectra_input = expected_spectra_input.replace('"', '')
-
-		# Obtaining data from file
-		expected_spectra = pd.read_csv(expected_spectra_input, index_col=False)
-
+	# Load files or folder(s) based on user input
+	if user_input == "f":
+		spectral_data = files.load_folder()
+	elif user_input == "i":
+		spectral_data = files.load_files()
+	else: 
+		raise ValueError("Invalid input")
 	
 	print("Beginning resolution analysis...\n")
 
-	element_dict = {
-		'Am': [
-			{'peak': 1, 'energy': 13.96, 'rel_counts': 9.6},
-			{'peak': 2, 'energy': 17.751, 'rel_counts': 5.7},
-			{'peak': 3, 'energy': 16.816, 'rel_counts': 2.5}
-		],
-		'Ba': [
-			{'peak': 1, 'energy': 4.286, 'rel_counts': 6},
-			{'peak': 2, 'energy': 4.717, 'rel_counts': 0.93},
-		],
-		'Fe': [
-			{'peak': 1, 'energy': 5.899, 'rel_counts': 16.9},
-			{'peak': 2, 'energy': 6.49, 'rel_counts': 1.98}
-		],
-		'Zn': [
-			{'peak': 1, 'energy': 8.048, 'rel_counts': 23.4},
-			{'peak': 2, 'energy': 8.905, 'rel_counts': 2.78}
-		],
-	}
+	total_count_rate = np.zeros(1024)
+	# nBins = len(data)
+	for data in spectral_data:
+		for isotope in isotopes:
+			if isotope in data.stem:
+				# Read the data
+				df = pd.read_csv(data)
 
-	peaks = element_dict.get(element)
+				# Unpacking data
+				counts = df['counts']
 
-	# If the element exists in the dictionary
-	if peaks is not None:
-		for peak in peaks:
-			energy = peak['energy']
+				# Get the integration time from the user
+				integration_time = float(input(f"Enter the integration time for the {isotope} spectrum in seconds: "))
 
-			# Get the expected_count and max_count for this energy
-			expected_counts = expected_spectra[expected_spectra['energy'] == energy]['counts']
-			measured_counts = calibration_points[calibration_points['E'] == energy]['maxCounts']
+				# Calculate the count rate
+				total_count_rate += counts / integration_time
 
-			if expected_counts is not None:
-				peak['expected_counts'] = expected_counts
-			if measured_counts is not None:
-				peak['measured_counts'] = measured_counts
+	# Find the true input count rate, C_in 
+	C_in = total_count_rate / (1 - dead_time * total_count_rate)
 
-	
+	# Find the C_model
+	C_model = C_in * np.exp( (-dead_time * C_in) / 2)
 
-	plt.plot(measured_counts, expected_counts)
-	plt.show()
-
-	
-
+	# --- Insert your code here to calculate reponse --- #
 
 def calibrate_spectrum():
 	'''
@@ -831,6 +786,7 @@ def calibrate_spectrum():
 
 	# Load calibration curve using functions from files.py
 	user_input_calibration = input("\nEnter path to calibration curve file: ")
+	user_input_calibration = user_input_calibration.replace('"', '')
 
 	calibration_curve = pd.read_csv(user_input_calibration)
 	m = calibration_curve['m'][0]
@@ -874,7 +830,7 @@ def calibrate_spectrum():
 
 			# Create a dictionary with the calibrated data
 			df = {
-				'energy (keV)': energies,
+				'energy': energies, # keV
 				'counts': data
 			}
 

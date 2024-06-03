@@ -6,10 +6,10 @@
 	"configurations": [
 		{
 			"name": "Python: main.py",
-			"type": "python",
+			"type": "debugpy",
 			"request": "launch",
 			"program": "${workspaceFolder}/src/main.py",
-			"args": ["-ex"],
+			"args": ["-c"],
 			"console": "integratedTerminal",
 			"justMyCode": true
 		}

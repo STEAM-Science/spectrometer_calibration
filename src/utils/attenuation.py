@@ -6,10 +6,6 @@ import pandas as pd
 
 import utils.read_henke as read_henke
 
-# TODO: Remove this print statement
-np.set_printoptions(edgeitems=5, threshold=10)
-
-
 compounds_info = {
 	'Pl': { # Polyimide C22H10N2O5
 		'compound': ['C', 'H', 'N', 'O'],
@@ -225,13 +221,6 @@ def henke_array(element, density):
 
 		delta = constant * f1
 		beta = constant * f2
-		# Debug print
-		print("\nThis is the output from the henke_array function")
-		print("energies (eV)", energies_interp)
-		print("f1", f1)
-		print("f2", f2)
-		print("delta (dimensionless)", delta)
-		print("beta (dimensionless)", beta)
 
 		return f1, f2, energies_interp, delta, beta
 
@@ -255,11 +244,6 @@ def henke_t(element_name, density):
 	# Calculate the absorption 1/e and wavelength
 	mu = (1.238 / (energies*4*np.pi*beta) ) * 1e4  # convert from microns to Angstroms
 	wavelength = 12397 / energies  # convert to wavelength (Angstroms)
-	
-	#Debug print
-	print("\nThis is the output from the henke_t function")
-	print("wavelength (Angstroms)", wavelength)
-	print("mu (1/Angstroms)", mu)
 
 	return wavelength, mu
 
@@ -361,12 +345,6 @@ def diode_param(material, thickness, si_thick=50000, oxide_thick=70):
 
 		#current = current2
 		current = current1
-
-		# Debug print
-		print("\nThis is the output from the diode_param function")
-		print("thickness (Angstroms):", thick)
-		print("trans2 (dimensionless)",trans2)
-		print("current (dimensionless)", current)
 
 		return wv, current
 

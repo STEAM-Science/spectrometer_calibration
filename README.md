@@ -252,8 +252,10 @@ Follow the steps below to determine the detector response.:
 - Example of exported response .csv file
 - Example of exported response plot
 
+## Credits
+This code was developed by Gabriela Galarraga and Sam Honan on the STEAM Science team. For questions or concerns, email us!
 
-## Contributing
+- gaga1728@colorado.edu
+- saho2937@colorado.edu
 
-
-## License
+If this code is used on any future projects, please include credits to the names listed above.

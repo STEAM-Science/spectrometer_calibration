@@ -10,6 +10,7 @@ from itertools import islice
 import os
 
 import utils.attenuation as atten
+import utils.files as files
 
 # Function to get user input
 def get_input(prompt, default_value, input_value):
@@ -95,7 +96,7 @@ def smooth_isotope_spectrum():
 			"Zn": {"activity": 10, "half_life": 0.668},
 		}
 
-		# Print instructions for user MOVE
+		# Print instructions for user
 		print("\nFollow the prompts below. Press enter to use the default value.")
 
 		# User input, if needed add "options" to the inputs dictionary
@@ -222,19 +223,15 @@ def smooth_isotope_spectrum():
 			#sum the chunk
 			rags_sum = sum(rags)
 			smooth_spectrum_rebinned.append(rags_sum)
-		
-		print(len(smooth_spectrum_rebinned))
-
-		# for x in response:
-		# 	if x != 0:
-		# 		raise ValueError("Response is zero, damn")
 
 		smooth_spectrum_rebinned = smooth_spectrum_rebinned*response
+
 		# Add Poisson noise
 		smooth_spectrum_rebinned_noise = atten.add_poisson_noise(smooth_spectrum_rebinned)
-		#print("\nSpectrum rebinned with Poisson noise: ", spectrum_rebinned)
-		# print("\nspectrum rebinned: ", spectrum_rebinned)
-		# print("\neee2: ", eee2)
+	
+
+		# Creating the output_spectrum dictionary
+		output_spectrum = {'element': element,  'integration_time': time, 'energy': eee2, 'counts': smooth_spectrum_rebinned_noise}
 
 		print("\nPlotting spectrum...")
 		print("Displaying spectrum.")
@@ -243,16 +240,29 @@ def smooth_isotope_spectrum():
 		print(f'Length of eee2: {len(eee2)} and Length of smooth_spectrum_rebinned_noise: {len(smooth_spectrum_rebinned_noise)}')
   
 		plt.plot(eee2, smooth_spectrum_rebinned_noise)
-		plt.legend()
+		#plt.legend()
 		#plt.plot(eee_mean2, spectrum_rebinned, label='spectrum')
 		plt.title(f'{element} Expected Spectrum')
 		plt.xlabel('Energy (keV)')
-		plt.ylabel('Counts (photons)')
+		plt.ylabel('Counts (photons)')\
+		
+		# Saving plot
+		## From user, getting name of plot/files and folder path to save
+		save_data = input("Do you want to save the data? (y/n): ").lower()
+
+		if save_data == 'y':
+			name = input("Input name of calibration curve plot: ")
+			folder_path = files.get_folder_path()
+
+			# Create dataframe from output_spectrum dictionary
+			output_spectrum_df = pd.DataFrame.from_dict(output_spectrum)
+		
+			# Save dataframe and image using create_csv and create_image functions from files.py
+			files.create_image(name, folder_path)
+			files.create_csv(output_spectrum_df, name, folder_path)
+
 		plt.show()
 
-		# Creating the output_spectrum dictionary
-		output_spectrum = {'element': element, 'energy': eee2, 'counts': smooth_spectrum_rebinned_noise}
-		
 		return output_spectrum
 	
 	except ValueError as e:

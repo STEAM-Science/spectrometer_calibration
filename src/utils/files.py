@@ -45,7 +45,7 @@ def load_folder():
 			# Add all files in the folder to the list of filenames
 			for file in folder.iterdir():
 				filenames.append(file)
-				print("Added", file.stem, "to list of files")
+				print("\nAdded", file.stem, "to list of files\n")
 		else:
 
 			raise ValueError("Folder path is not a directory")
@@ -86,7 +86,7 @@ def load_files():
 ### Asks user for folder path and returns it as a string
 def get_folder_path():
 
-	user_input = input("Where would you like to save the file? (Location Path): ")
+	user_input = input("\nWhere would you like to save the file? (Location Path): ")
 
 	## Replacing double quotes with nothing from user input
 	## When copying from Windows Explorer, the path sometimes copied with double quotes, which would create an 

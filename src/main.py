@@ -6,13 +6,12 @@ import utils.calibrate as calibrate
 import utils.plot as plot
 import utils.simulated as sim
 
-
 def main():
 	"""
 	This script provides a command-line interface for processing and displaying spectra.
 
 	Usage:
-	-c, --calibrate: create a calibration curve from multiple points
+	-cs, --calibrate: create a calibration curve from multiple points
 	-cp, --cpoints: process a spectrum
 	-d, --display: display a calibrated spectrum
 	-r, --resolution: determine the resolution of the spectrometer
@@ -26,7 +25,7 @@ def main():
 	parser.add_argument("-cp", "--cpoints", 
 						help= "reads spectrum data and performs a Gaussian fit over a selected region **Multiple files must be from the same element.", 
 						action="store_true")
-	parser.add_argument("-c", "--calibrate", 
+	parser.add_argument("-cs", "--calibrate", 
 						help="calibrate and display a spectrum", 
 						action="store_true")
 	parser.add_argument("-r", "--resolution", 
@@ -83,22 +82,22 @@ def main():
 		"""
 		calibrate.calibrate_spectrum()
 
-	if args.resolution:
+	if args.response:
 		"""
-		***Create this function: calibrate.determine_resolution()***
+		***Create this function: calibrate.determine_response()***
 
 		Step 1. Load file of expected spectrum from STEAM's IDL code and Gaussian fit file using function calibrate.determine_response()
 		Step 2. Pull maxCounts from Gaussian fit file
 		Step 3. Plot maxCounts vs expected_counts using plot.plot_data()
-		Step 4. Save the resolution to a csv file using the function files.create_csv()
+		Step 4. Save the response to a csv file using the function files.create_csv()
 		Step 5. Save the plot to an image file using the function files.create_image()
 		
 		"""
-		calibrate.determine_resolution()
+		calibrate.determine_response()
 
-	if args.response:
+	if args.resolution:
 		"""
-		Determines the detector response by analyzing the Full Width Half Max (FWHM) and Energy (E) of the calibration points.
+		Determines the detector resolution by analyzing the Full Width Half Max (FWHM) and Energy (E) of the calibration points.
 		Saves the detector response data to a CSV file and displays a plot of FWHM vs E.
 		
 		Step 1. Load a file(s) containing Gaussian fit parameters using the function files.load_files()
@@ -107,7 +106,7 @@ def main():
 		Step 4. Save the resolution to a csv file using the function files.create_csv()
 		Step 5. Save the plot to an image file using the function files.create_image()
 		"""
-		calibrate.detector_response()
+		calibrate.determine_resolution()
 
 if __name__ == "__main__":
 	main()

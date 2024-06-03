@@ -40,10 +40,6 @@ def process_spectrum():
 			return sum_spectra(filenames)
 		elif user_input_case == "n":
 			return read_spectra(filenames)
-		## TODO: if i want to further automate the process, i can check the filename for 
-		# instances where element = element and THEN ask if the user wishes to sum
-		# for filename in filenames:
-		# element = element then ask
 
 	if len(filenames) == 1:
 		return read_spectra(filenames)
@@ -87,7 +83,7 @@ def read_spectra(filenames):
 				# Get data (last row of .csv file) and convert to array
 				data = df.iloc[-1].to_numpy()
 
-				print("Done reading spectrum from", filename.name)
+				print(f'Done reading spectrum from {filename.name}\n')
 				
 				## Create a class instance of the data and file(s)
 				data_processed = classes.DataProcessor(filename.stem, data)
