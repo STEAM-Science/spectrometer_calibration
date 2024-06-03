@@ -1,61 +1,261 @@
-# STEAM Spectrometer Calibration Code
-Python code to create calibration curves for Amptek CdTe (hard) and FastSDD (soft) X-ray spectrometers. This code has the following functions:
+# STEAM Spectrometer Calibration
 
-1. Creating calibration curves
-2. Displaying calibrated spectra
-3. Exporting `.csv` files of calibrated spectra
+This project contains Python code designed for calibration of Amptek's soft X-Ray spectrometer and hard X-Ray spectrometer. The code provides the following functionalities:
 
-Data is stored in the STEAM shared Google Drive at --.
+- **Create a calibration curve:** Generate a calibration curve based on the input data.
+- **Calibrate spectra:** Apply the calibration curve to raw spectra to obtain calibrated spectra.
+- **Determine the resolution of the spectrometer:** Calculate the resolution of the spectrometer based on the calibrated spectra.
+- **Determine the response of the spectrometer:** Evaluate the response of the spectrometer across different energy levels.
 
-## 1. Creating calibration curves
 
-Calibration curves can be created by fitting a curve mapping bins of known spectral peaks to their corresponding energies. This is done using the `--calibrate` flag while running `main.py`.
+## Table of Contents
+1. [About the Project](#introduction)
+2. [Project Structure](#project-structure)
+3. [Environment Setup](#environment-setup)
+	- [Prerequisites](#prerequisites)
+	- [Installation](#installation)
+4. [Calibration Procedure](#calibration-procedure)
+	- [Creating a Calibration Curve](#creating-calibration-curve)
+	- [Calibrate Spectra](#calibrate-spectra)
+	- [Determine Resolution of Spectrometer](#determine-resolution-of-spectrometer)
+	- [Determine Response of Spectrometer](#determine-response-of-spectrometer)
+5. [Contributing](#contributing)
+6. [License](#license)
 
-A demonstration of this procedure can be done by running
 
-`python main.py --src spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt --calibrate`
+## About the Project
+This code was written to calibrate STEAM's flight model (FM) spectrometers. These tests aimed to calibrate the gain and offset, response, and resolution of two off-the-shelf X-Ray spectrometers, one soft X-Ray spectrometer ([Amptek X-123 SDD](https://www.amptek.com/internal-products/x-123-complete-x-ray-spectrometer)), 
+and one hard X-Ray spectrometer ([Amptek X-123 CdTe](https://www.amptek.com/internal-products/x-123-cdte-complete-x-ray-gamma-ray-spectrometer-with-cdte-detector)). Calibration data is derived from the well-known emission lines from calibrated radioisotope sources at various energies within the range of 0-70 keV (STEAM’s region of interest). The radioisotopes and their activities are the following: Am-241 at 1 μCi, Ba-133 at 10 μCi, Cd-109 at 10 μCi, Fe-55 at 100 μCi, and Zn-65 at 10 μCi. 
 
-Here, the source spectrum being used to create the calibration curve is specified at `spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt` with the flag `--src`.
+The gain and offset of the spectrometer were determined using the built-in channels during data analysis. The resolution was determined by the peak widths of the emission lines, while the response was determined by the peak counts. The efficiency of the spectrometer was determined by combining the response and the activity of the isotope.
 
-Once the script is run, the program will display the uncalibrated spectrum. Count the number of peaks of known energy that will be fit (integer input). Note that a minimum of two peaks are required for a calibration curve.
+For more information on how STEAM's spectrometers were calibrated, see the [STEAM Spectrometer Calibration Report](link)  
 
-Next, the program will iterate over every desired peak. The uncalibrated spectra will be displayed once again and a table of expected peaks from the NIST database will be printed. Choose the peak and enter its NIST index. Note that it is easiest to go in a descending order of peak counts.
+## Project Structure
 
-Now, the plot will be displayed and the user shall be prompted to zoom into the desired peak. Do this by clicking to the left of and to the right of a peak. It is, in general, better to select points sufficiently far from the peak.
+```
+root
+├───data (contains all the data files)
+│   ├───calibration
+│   │   ├───processed
+│   ├───results
+│   │   ├───cPoints
+│   │   ├───cCurves
+│   │   ├───resolution
+│   │   ├───response
+├───henke_model
+├───environment
+│   ├───environment.yml
+│   ├───requirements.txt
+├───utils
+│   ├───calibrate.py
+│   ├───classes.py
+│   ├───files.py
+│   ├───gaussian_fit.py
+│   ├───llsfit.py (linear least-square fitting)
+│   ├───plot.py
+│   ├───spectrum.py
+main.py
+```
 
-The program will zoom into the desired range and request a range to fit a Gaussian curve. Perform this fit by selecting points on either side of the peak in a manner similar to the previous step, however, ensure that no other peaks are contained in the range.
+- `data`: This directory contains all the data files
+	- `calibration`: contains the raw calibration data
+	- `results`: contains the results of the calibration
+		- `cPoints`: contains the calibration points
+		- `cCurves`: contains the calibration curve results
+		- `resolution`: contains the resolution results
+		- `response`: contains the response results
+- `henke_model`: 
+- `environment`: This directory contains the environment files
+	- `environment.yml`: contains the environment file for Anaconda
+	- `requirements.txt`: contains the environment file for pip
 
-This will result in the acquisition of a single point for the calibration curve. Repeat this process for all known peaks (the program will automatically iterate over the number specified at the start). At the end of this task, the calibration curve will be saved with errorbars at `cCurves\<subfolder>\<filename>_curve.csv`.
+- `utils`: This directory contains various tools written in Python for analyzing the calibration data
+	- `classes.py`: contains classes to store data
+	- `calibrate.py`: contains functions for calibrating the spectrometer
+	- `files.py`: contains functions for file handling
+	- `gaussian_fit.py`: contains functions for fitting Gaussian curves to data
+	- `llsfit.py`: contains functions for linear least-square fitting
+	- `plot.py`: contains functions for plotting data
+	- `spectrum.py`: contains functions for reading spectrum data
 
-## 2. Displaying calibrated spectra
+- `main.py`: This is the main script for running the project
 
-Spectra measured by the Amptek spectrometers stored in raw text (`.txt`) format can be displayed as calibrated spectra using the `--display` flag.
+The data used to characterize the spectrometer was collected using both Amptek's DPPMCA software and STEAM's ground software (GSW). The data from Amptek is saved as a ```.mca``` converted to a raw ```.txt``` file and the data from STEAM is initially saved as a ```.csv``` file. STEAM's GSW saves the cumulative spectrum as the last line of the ```.csv``` file. The cumulative spectrum is the sum of all the spectra collected during the run. The cumulative spectrum is used for calibration.
 
-A demonstration of this procedure can be done by running
+Finally, all commands are run from the ```main.py``` file. This file contains the main function that calls all the other functions in the ```utils``` folder.
 
-`python main.py --src spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt --cSrc cCurves/demo/2022_12_02_CdTe_Zn_01_no_purge_curve.csv --display`
+## Environment Setup
+### Prerequisites
 
-Here, the source spectrum being used to create the calibration curve is specified at `spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt` with the flag `--src`. The calibration curve used to calibrate this spectrum is specified at `cCurves/demo/2022_12_02_CdTe_Zn_01_no_purge_curve.csv` with the flag `--cSrc`.
+- Visual Studio Code
+- Python 3.11.3 or higher
+- pip (Python package manager)
 
-Once this script is run, the user will be asked whether they want specific bounds for the x-axis. If yes, these bounds must be provided in units of keV.
+### Installation
 
-Next, the user will be asked whether to save the resultant plot. If yes, the plot will be saved at `plots\<subfolder>\<filename>.png`.
+This project uses the following Python packages:
 
-## 3. Exporting `.csv` files of calibrated spectra
+- matplotlib
+- mpl_point_clicker
+- numpy
+- os
+- pandas
+- pathlib
+- re
+- scipy
 
-Spectra measured by the Amptek spectrometers stored in raw text (`.txt`) format can be calibrated and saved as a dataframe using the `--csv` flag.
+To install these packages, use the provided environment file by running following steps:
 
-A demonstration of this procedure can be done by running
+**1.** Install Visual Studio Code (VS Code): [VS Code Download](https://code.visualstudio.com/download)
 
-`python main.py --src spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt --cSrc cCurves/demo/2022_12_02_CdTe_Zn_01_no_purge_curve.csv --csv`
+**2.** Install Python 3.11.3 or higher: [Python Download](https://www.python.org/downloads/)
 
-Here, the source spectrum being used to create the calibration curve is specified at `spectra\demo\2022_12_02_CdTe_Zn_01_no_purge.txt` with the flag `--src`. The calibration curve used to calibrate this spectrum is specified at `cCurves/demo/2022_12_02_CdTe_Zn_01_no_purge_curve.csv` with the flag `--cSrc`.
+**3.** In VS Code, install the Python extension and Python interpretor: 
+- Python Extension
+	- [Visual Studio Python](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
+	- [Anaconda (Recommended)](https://www.anaconda.com/products/individual)
+- Python Interpretor for VS code:
+	- [Pylance](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance)
 
-The resultant `.csv` file will be stored at `csvOut\<subfolder>\<filename>.csv`.
+**4.** Navigate to the project directory: `cd ..\spectrometer_calibration\src`
 
-## Displaying README.md
+**5.** Install dependencies, if using:
 
-Display `README.md` using the following:
-> !grip -b README.md
+- 5a. Using Anaconda (recommended)
+	- Open Anaconda command prompt. To verify if the Anaconda Prompt is open, type `conda` and press ENTER. You should get a help message that explains usage for conda
+	- Create environment and install packages from environment.yml file:
+	`conda env create -f environment.yml`
+	- Activate environment: `conda activate myenv`
+	
+	To check if the environment is active, type `conda env list` and press ENTER. You should see a list of environments, and the active environment should be marked with an asterisk (*).
 
-For issues with the code email Ravin Chowdhury at `rach1691@colorado.edu`.
+- 5b. Using pip: 
+	- Open command prompt. 
+	- Create environment: `python -m venv env`
+	- Activate environment: `source myenv/bin/activate`
+	- Install packages from requirements.txt file: `pip install -r environment/requirements.txt`
+
+
+	*venv* is a module that comes with Python 3.3 and later versions, so you do not need to install it separately. It is already available on both OS and Windows, as long as you have a compatible Python version. You can check your Python version by running `python --version` in a terminal or command prompt. If you get a message saying that the command was not found or something similar, you’ll need to install Python. If you get a version number (e.g. Python 3.11.2), you’re good to go.
+
+**6.** Run the project using the commands outlined in the [Calibration Procedure](#calibration-procedure) section.
+
+## Calibration Procedure (Usage)
+
+### Creating a Calibration Curve
+This section outlines the steps to perform a Gaussian fit on each desired peak within the spectrum, export the results, and create a calibration curve. 
+
+Before starting, ensure you have the following:
+- **Spectra files:** These can be in the form of .csv or .txt files, and can be a single file or a folder containing multiple files.
+	- [Example .csv data file](example_files\SDD_Fe_55_Data_Example.csv) (from GSW)
+	- [Example .txt data file](example_files\SDD_Fe_55_Data_Example.txt) (from DPPMCA)
+
+Follow the steps below to create a calibration curve.:
+
+**Step 1.** Enter the command in terminal to fit each spectra. (See example data files above)
+- Command: ```python main.py -cp```
+
+	or,  ```python main.py --calibrate_points```
+
+**Step 2:** Enter file(s) or folder(s) location of data to use for calibration.
+- Example File Location: ```C:\repo\steam_science\spectrometer_calibration\src\data```
+
+**Step 3:** Follow prompt to perform a Gaussian fit for each peak.
+- [Example calibration points file](example_files/SDD_Fe_55_Calibration_Points.csv)
+
+**Step 4:** Repeat steps 1-3 for each spectrum.
+
+**Step 5:** Enter command in terminal to create calibration curve.
+- Command: ```python main.py -cc``` 
+
+	or, ```python main.py --calibration```
+
+**Step 6:** Enter  _all_  files or folder(s) location of calibration points to use for calibration. (See Step 3 for example file)
+
+**Step 7:** Follow prompts.
+- [Example of exported calibration curve csv file]
+- [Example of exported calibration curve plot]
+
+----
+### Calibrate Spectra
+This section outlines the steps to calibrae the spectra using the calibration curve. 
+
+Before starting, ensure you have the following:
+- **Spectra files:** These can be in the form of .csv or .txt files, and can be a single file or a folder containing multiple files.
+	- [Example .csv data file](example_files\SDD_Fe_55_Data_Example.csv) (from GSW)
+	- [Example .txt data file](example_files\SDD_Fe_55_Data_Example.txt) (from DPPMCA)
+- **Calibration curve file:** This is the results of the calibration curve 
+	- Example calibration curve file
+
+Follow the steps below to create a calibration curve.:
+
+**Step 1:** Enter command in terminal to calibrate spectra.
+- Command: ```python main.py -c``` 
+
+	or, ```python main.py --calibrate```
+
+**Step 2:** Enter file(s) or folder(s) location of spectrum or spectra to calibrate.
+- Example File Location: ```C:\repo\steam_science\spectrometer_calibration\src\data```
+
+**Step 3:** Enter file location of calibration curve.
+- Example File Location: ```C:\repo\steam_science\spectrometer_calibration\src\data\results\cCurves\calibration_curve.csv```
+
+**Step 4:** Follow prompts.
+- Example of exported calibrated spectrum .csv file
+- Example of exported calibrated spectrum plot
+
+---
+### Determine Resolution of Spectrometer
+
+Before continuing, ensure you have the following:
+ - **Calibration curve points file:** This file contains all of the calibration points used to make the calibration curve. Created in the [Calibration Curve](#calibration-curve) section.
+	- Example calibration points file
+ - **Expected Spectrum:** This file can be created using STEAM's IDL code, or your own. From this file needs to contain the expected max counts of the desired energy peaks.
+
+Follow the steps below to determine the detector response.:
+
+**Step 1:** Enter command into terminal to determine the detector response.
+- Command: ```python main.py -r``` 
+
+	or, ```python main.py --resolution```
+
+**Step 2:** Enter file location of calibration points file.
+	- Example calibration points file
+
+**Step 3:** Enter file location of expected counts file.
+	- Example of expected counts file (from STEAM's IDL)
+
+ **Step 4:** Follow prompts.
+ 	- Example of exported resolution file
+  	- Example of exported resolution plot (Measured vs Expected Max Counts)
+
+
+### Determine Response of Spectrometer
+This section outlines the steps to determine the detector response by analyzing the Full Width Half Max (FWHM) and energy of the calibration points. The results are saved to a CSV file and a plot of FWHM vs Energy is displayed.
+
+Before continuing, ensure you have the following:
+- **Calibration curve points file:** This file contains all of the calibration points used to make the calibration curve. Created in the [Calibration Curve](#calibration-curve) section.
+	- Example calibration points file
+
+Follow the steps below to determine the detector response.:
+
+**Step 1:** Enter command into terminal to determine the detector response.
+- Command: ```python main.py -rp``` 
+
+	or,  ```python main.py --response```
+
+**Step 2:** Enter file location of calibration curve. (Results of calibration curve _curve.csv file)
+- Example File Location: ```C:\repo\steam_science\spectrometer_calibration\src\data\results\cPoints```
+
+**Step 3:** Follow prompts.
+- Example of exported response .csv file
+- Example of exported response plot
+
+## Credits
+This code was developed by Gabriela Galarraga and Sam Honan on the STEAM Science team. For questions or concerns, email us!
+
+- gaga1728@colorado.edu
+- saho2937@colorado.edu
+
+If this code is used on any future projects, please include credits to the names listed above.
